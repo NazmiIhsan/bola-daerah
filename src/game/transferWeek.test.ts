@@ -114,3 +114,12 @@ test('the weekly deal limit still holds once the history is full', () => {
   expect(most).toBeGreaterThan(0)
   expect(most).toBeLessThanOrEqual(4)
 })
+
+test('nobody moves twice in one season', () => {
+  for (let seed = 0; seed < 10; seed++) {
+    let s = at(1, seed)
+    for (const m of [1, 2, 3, 9, 10, 11]) s = transferWeek({ ...s, matchday: m }, createRng(seed * 7919 + m))
+    const moved = s.transfers.history.map((r) => r.playerId)
+    expect(new Set(moved).size).toBe(moved.length)
+  }
+})

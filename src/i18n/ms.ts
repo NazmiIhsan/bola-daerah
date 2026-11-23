@@ -256,4 +256,6 @@ export const ms: Partial<Record<I18nKey, string>> = {
   'transfers.list': 'Letak dalam senarai jualan',
   'transfers.unlist': 'Keluarkan dari senarai jualan',
   'transfers.listed': 'Dijual',
+  'transfers.refused.justJoined': 'Pemain tidak boleh berpindah dua kali dalam satu musim.',
+  'transfers.refused.seasonOver': 'Musim sudah tamat. Tandatangani pemain apabila musim baharu bermula.',
 }

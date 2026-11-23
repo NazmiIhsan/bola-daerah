@@ -1,6 +1,6 @@
 import { wageBill, formatRM } from './finance'
 import { overall } from './generate'
-import { AI_SQUAD_MAX, askingPrice, canLeave, improvement, maxYears, playerValue, squad, SQUAD_MAX, squadRank, transferWindow, wageDemand, willJoin } from './market'
+import { AI_SQUAD_MAX, askingPrice, canLeave, improvement, justJoined, maxYears, playerValue, squad, SQUAD_MAX, squadRank, transferWindow, wageDemand, willJoin } from './market'
 import { isRivalry } from './rivals'
 import { addNews, type NewNews } from './news'
 import { applyReaction } from './reactions'
@@ -10,7 +10,7 @@ import { FREE_AGENT, type GameState, type IncomingOffer, type Player, type Trans
 
 export type Refusal =
   | 'sacked' | 'windowClosed' | 'invalidAmount' | 'notForSale' | 'blocked' | 'squadFull' | 'transferBudget'
-  | 'wageBudget' | 'wontJoin' | 'noAgreement' | 'tooManyYears' | 'gone' | 'squadTooSmall'
+  | 'wageBudget' | 'wontJoin' | 'noAgreement' | 'tooManyYears' | 'gone' | 'squadTooSmall' | 'justJoined' | 'seasonOver'
 type Refused = { kind: 'refused'; reason: Refusal }
 export type BidOutcome = { kind: 'accepted' } | { kind: 'counter'; fee: number } | { kind: 'rejected' } | Refused
 export type TermsOutcome = { kind: 'signed' } | { kind: 'counter'; wage: number } | { kind: 'rejected' } | Refused
@@ -18,6 +18,7 @@ export type OfferOutcome = { kind: 'sold' } | { kind: 'declined' } | { kind: 'ra
 export interface Act<O> { state: GameState; outcome: O }
 
 const HISTORY_CAP = 60
+const LAST_MATCHDAY = 18
 const COUNTER_BID = 0.75
 const COUNTER_WAGE = 0.85
 
@@ -74,6 +75,7 @@ export function placeBid(state: GameState, playerId: string, fee: number): Act<B
   if (!transferWindow(state.matchday)) return refuse(state, 'windowClosed')
   if (state.transfers.blocked.includes(playerId)) return refuse(state, 'blocked')
   if (squad(state, state.userClubId).length >= SQUAD_MAX) return refuse(state, 'squadFull')
+  if (justJoined(state, playerId)) return refuse(state, 'justJoined')
   if (!canLeave(state, playerId)) return refuse(state, 'notForSale')
   if (!willJoin(state, playerId, state.userClubId)) return refuse(state, 'wontJoin')
   if (!canAfford(state, fee)) return refuse(state, 'transferBudget')
@@ -116,6 +118,7 @@ export function offerTerms(state: GameState, playerId: string, wage: number, yea
   if (!p || p.clubId === me) return refuse(state, 'gone')
   const bad = badTerms(p, wage, years)
   if (bad) return refuse(state, bad)
+  if (state.matchday > LAST_MATCHDAY) return refuse(state, 'seasonOver')
   const isFree = p.clubId === FREE_AGENT
   const fee = isFree ? 0 : state.transfers.agreed[playerId]
   if (fee === undefined) return refuse(state, 'noAgreement')
@@ -211,6 +214,7 @@ export function respondToOffer(state: GameState, offerId: string, answer: 'accep
   }
 
   if (budget < offer.fee) return { state: withOffers(state, others), outcome: { kind: 'withdrawn' } }
+  if (justJoined(state, p.id)) return refuse(state, 'justJoined')
   if (!canLeave(state, p.id)) return refuse(state, 'squadTooSmall')
   const anger = saleAnger(state, p, offer.clubId)
   const name = fullName(p)

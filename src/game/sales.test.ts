@@ -127,3 +127,18 @@ test('makeOffer comes from an AI club that can pay, at a sensible fee', () => {
   }
   expect(made).toBeGreaterThan(5)
 })
+
+test('a free agent cannot be signed and flipped for profit in the same season', async () => {
+  const { offerTerms } = await import('./transfers')
+  const { transferWeek } = await import('./transferWeek')
+  const free = Object.values(base.players).find((p) => p.clubId === FREE_AGENT)!
+  const rich = { ...base, transfers: { ...base.transfers, budgets: { ...base.transfers.budgets, petaling: { transfer: 0, wage: 1_000_000 } } } }
+  const signed = offerTerms(rich, free.id, 50_000, 3, rng())
+  expect(signed.outcome.kind).toBe('signed')
+  const listed = toggleListed(signed.state, free.id)
+  for (let seed = 0; seed < 30; seed++) {
+    expect(transferWeek({ ...listed, matchday: 2 }, rng(seed * 7919)).transfers.offers.some((o) => o.playerId === free.id)).toBe(false)
+  }
+  const r = respondToOffer(withOffer(listed, free.id), 'o1', 'accept', rng())
+  expect(r.outcome).toEqual({ kind: 'refused', reason: 'justJoined' })
+})

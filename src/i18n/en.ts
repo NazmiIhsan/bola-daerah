@@ -254,6 +254,8 @@ export const en = {
   'transfers.list': 'Put on transfer list',
   'transfers.unlist': 'Take off transfer list',
   'transfers.listed': 'Listed',
+  'transfers.refused.justJoined': 'Players cannot move twice in one season.',
+  'transfers.refused.seasonOver': 'The season is over. Sign players when the next one starts.',
 } as const
 
 export type I18nKey = keyof typeof en

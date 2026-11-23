@@ -73,6 +73,11 @@ export function canLeave(state: GameState, playerId: string): boolean {
   return mates.length > SQUAD_MIN && mates.filter((x) => x.position === p.position).length > POSITION_MIN[p.position]
 }
 
+/** True when the player changed clubs earlier this season; they can't move again until the next one. */
+export function justJoined(state: GameState, playerId: string): boolean {
+  return state.transfers.history.some((r) => r.playerId === playerId && r.season === state.season)
+}
+
 /** Players turn down clubs far below their current one. */
 export function willJoin(state: GameState, playerId: string, clubId: string): boolean {
   const p = state.players[playerId]

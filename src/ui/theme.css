@@ -278,3 +278,5 @@ input:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 .name-link:hover { text-decoration: underline; }
 .tag.listed { background: color-mix(in srgb, var(--accent-2) 30%, transparent); margin-left: .4rem; }
 .nowrap { white-space: nowrap; }
+.market-main > .small { display: flex; flex-wrap: wrap; align-items: center; gap: 0 .35rem; }
+.player-dialog:focus { outline: none; }

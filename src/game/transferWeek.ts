@@ -1,6 +1,6 @@
 import { formatRM } from './finance'
 import { generatePlayer, initialTransfers, overall, squadQuality } from './generate'
-import { AI_SQUAD_MAX, askingPrice, canLeave, improvement, playerValue, POSITION_MIN, squad, transferWindow, wageDemand, willJoin } from './market'
+import { AI_SQUAD_MAX, askingPrice, canLeave, improvement, justJoined, playerValue, POSITION_MIN, squad, transferWindow, wageDemand, willJoin } from './market'
 import { addNews, type NewNews } from './news'
 import type { Rng } from './rng'
 import { fullName, makeOffer, movePlayer } from './transfers'
@@ -41,6 +41,7 @@ function aiSigning(state: GameState, clubId: string, rng: Rng): GameState {
     p.position === position &&
     p.clubId !== clubId &&
     p.clubId !== state.userClubId &&
+    !justJoined(state, p.id) &&
     improvement(state, clubId, p) > MIN_IMPROVEMENT &&
     askingPrice(state, p.id, clubId) <= budget &&
     willJoin(state, p.id, clubId) &&
@@ -71,7 +72,7 @@ function newOffers(state: GameState, rng: Rng): GameState {
   let offers = state.transfers.offers
   for (const p of wanted) {
     if (offers.length >= MAX_OFFERS) break
-    if (offers.some((o) => o.playerId === p.id) || !canLeave(state, p.id)) continue
+    if (offers.some((o) => o.playerId === p.id) || justJoined(state, p.id) || !canLeave(state, p.id)) continue
     const offer = makeOffer(state, p.id, rng)
     if (offer) offers = [...offers, offer]
   }
@@ -85,7 +86,7 @@ function rumour(state: GameState, rng: Rng): NewNews[] {
   const targets = Object.values(state.players).filter((p) =>
     p.clubId !== me && p.clubId !== FREE_AGENT &&
     playerValue(p, state.season) <= state.transfers.budgets[me].transfer &&
-    improvement(state, me, p) > 0 && willJoin(state, p.id, me) && canLeave(state, p.id))
+    improvement(state, me, p) > 0 && willJoin(state, p.id, me) && !justJoined(state, p.id) && canLeave(state, p.id))
   if (targets.length === 0) return []
   const p = rng.pick(targets)
   return [{ kind: 'transfer', key: 'news.transfer.rumour', params: { clubId: me, oppId: p.clubId, player: fullName(p) } }]

@@ -151,3 +151,16 @@ describe('renewals', () => {
     expect(renewContract(base, target.id, 5000, 2, rng()).outcome).toEqual({ kind: 'refused', reason: 'gone' })
   })
 })
+
+test('no signings once the season is over', () => {
+  const st = { ...rich, matchday: 19 }
+  const r = offerTerms(st, free[0].id, 50_000, 1, rng())
+  expect(r.outcome).toEqual({ kind: 'refused', reason: 'seasonOver' })
+  expect(r.state).toBe(st)
+})
+
+test('a club will not sell a player it signed this season', () => {
+  const st: GameState = { ...rich, transfers: { ...rich.transfers, history: [{ season: 2027, matchday: 1, playerId: target.id, name: 'x', fromId: 'klang', toId: 'sepang', fee: 1 }] } }
+  expect(placeBid(st, target.id, ask).outcome).toEqual({ kind: 'refused', reason: 'justJoined' })
+  expect(placeBid({ ...st, season: 2028 }, target.id, 19_000_000).outcome).toEqual({ kind: 'accepted' })
+})
