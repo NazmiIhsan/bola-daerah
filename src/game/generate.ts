@@ -79,7 +79,7 @@ export function generatePlayer(rng: Rng, clubId: string, position: Position, qua
 
 /** RM per week, rounded to RM 10. */
 export function wageFor(p: Player, club: Pick<Club, 'reputation'>): number {
-  return Math.max(10, Math.round((overall(p) ** 2 * 8 * (0.6 + club.reputation / 100)) / 10) * 10)
+  return Math.max(10, Math.round((overall(p) ** 2 * 14 * (0.6 + club.reputation / 100)) / 10) * 10)
 }
 
 export function startingBalance(club: Pick<Club, 'reputation'>): number {
