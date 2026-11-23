@@ -46,7 +46,7 @@ describe('news templates', async () => {
     for (const lang of ['en', 'ms'] as const) for (const [k, v] of Object.entries(NEWS[lang])) expect({ k, n: v.length >= 3 }).toEqual({ k, n: true })
   })
   test('newsText resolves club ids, leaves no placeholders, and is stable per variant', () => {
-    const params = { clubId: 'kapar', oppId: 'klang', club2Id: 'jugra', score: '3–1', pos: 2, n: 1, expectation: 'x' }
+    const params = { clubId: 'kapar', oppId: 'klang', club2Id: 'jugra', score: '3–1', pos: 2, n: 1, expectation: 'x', player: 'Ali Hassan', fee: 'RM 120,000', season: 2029 }
     for (const lang of ['en', 'ms'] as const) for (const key of Object.keys(NEWS.en)) {
       const item = { id: 'a', season: 2027, matchday: 1, kind: 'match' as const, key, params, variant: 7, read: false }
       const a = newsText(lang, item, (id) => id.toUpperCase())
@@ -55,6 +55,12 @@ describe('news templates', async () => {
       expect(newsText(lang, item, (id) => id.toUpperCase())).toEqual(a)
     }
   })
+})
+
+test('every transfer news key the game emits has templates', async () => {
+  const { NEWS } = await import('./news')
+  const keys = ['signed', 'signedFree', 'sold', 'renewed', 'offer', 'deal', 'dealFree', 'rumour', 'windowOpen', 'deadline', 'closed', 'expiring', 'left']
+  for (const k of keys) expect(Object.keys(NEWS.en)).toContain(`news.transfer.${k}`)
 })
 
 describe('press templates', async () => {
