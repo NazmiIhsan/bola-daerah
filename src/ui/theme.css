@@ -274,3 +274,7 @@ input:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 .deal-msg { margin: 0; padding: .5em .8em; border-radius: 8px; background: var(--surface-2); }
 .deal-msg.good { background: var(--up); color: var(--good); }
 .deal-msg.bad { background: var(--down); color: var(--bad); }
+.name-link { background: none; border: 0; padding: 0; text-align: left; font-weight: 600; }
+.name-link:hover { text-decoration: underline; }
+.tag.listed { background: color-mix(in srgb, var(--accent-2) 30%, transparent); margin-left: .4rem; }
+.nowrap { white-space: nowrap; }

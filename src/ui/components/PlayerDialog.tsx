@@ -34,8 +34,13 @@ export function PlayerDialog({ state, playerId, actions, onClose }: { state: Gam
   const open = transferWindow(state.matchday) !== null
   const [fee, setFee] = useState(() => (p ? String(playerValue(p, state.season)) : ''))
   const [wage, setWage] = useState(() => (p ? String(p.wage) : ''))
-  const [years, setYears] = useState(1)
   const [message, setMessage] = useState<{ text: string; tone: 'good' | 'bad' | 'info' } | null>(null)
+  const mine = p?.clubId === state.userClubId
+  // Signings count this season as year one; renewals add seasons after it.
+  const yearOptions = p ? Array.from({ length: maxYears(p) }, (_, i) => i + 1)
+    .map((y) => ({ y, season: mine ? state.season + y : state.season + y - 1 }))
+    .filter((o) => !mine || o.season > p.contractEnd) : []
+  const [years, setYears] = useState(() => yearOptions[0]?.y ?? 1)
   const [done, setDone] = useState(false)
   const box = useRef<HTMLDivElement>(null)
 
@@ -74,7 +79,19 @@ export function PlayerDialog({ state, playerId, actions, onClose }: { state: Gam
     else setMessage({ text: t(`transfers.refused.${o.reason}`), tone: 'bad' })
   }
 
-  const yearOptions = Array.from({ length: maxYears(p) }, (_, i) => i + 1).map((y) => ({ y, season: state.season + y - 1 }))
+  const contractForm = (send: () => void, button: string) => (
+    <form onSubmit={(e) => { e.preventDefault(); send() }} noValidate className="deal">
+      {agreed !== undefined && <p className="small muted">{t('transfers.feeAgreed', { fee: formatRM(agreed) })}</p>}
+      <MoneyField label={t('transfers.offerWage')} value={wage} step={10} onChange={setWage} />
+      <label className="field">
+        <span className="small muted">{t('transfers.until')}</span>
+        <select value={years} onChange={(e) => setYears(Number(e.target.value))}>
+          {yearOptions.map((o) => <option key={o.y} value={o.y}>{o.season}</option>)}
+        </select>
+      </label>
+      <button className="primary" type="submit">{button}</button>
+    </form>
+  )
 
   return (
     <div className="modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
@@ -94,26 +111,19 @@ export function PlayerDialog({ state, playerId, actions, onClose }: { state: Gam
           {ATTRS.map((k) => <li key={k}><span>{t(`attr.${k}`)}</span><strong>{p.attrs[k]}</strong></li>)}
         </ul>
         {message && <p role="status" className={`deal-msg ${message.tone}`}>{message.text}</p>}
-        {!done && !isFree && agreed === undefined && (
+        {!done && !mine && !isFree && agreed === undefined && (
           <form onSubmit={sendBid} noValidate className="deal">
             <MoneyField label={t('transfers.yourBid')} value={fee} step={1000} onChange={setFee} />
             <button className="primary" type="submit" disabled={!open}>{t('transfers.makeBid')}</button>
             {!open && <p className="muted small">{t('transfers.refused.windowClosed')}</p>}
           </form>
         )}
-        {!done && (isFree || agreed !== undefined) && (
-          <form onSubmit={(e) => { e.preventDefault(); showTerms(actions.terms(playerId, Number(wage), years), 'transfers.signed') }} noValidate className="deal">
-            {agreed !== undefined && <p className="small muted">{t('transfers.feeAgreed', { fee: formatRM(agreed) })}</p>}
-            <MoneyField label={t('transfers.offerWage')} value={wage} step={10} onChange={setWage} />
-            <label className="field">
-              <span className="small muted">{t('transfers.until')}</span>
-              <select value={years} onChange={(e) => setYears(Number(e.target.value))}>
-                {yearOptions.map((o) => <option key={o.y} value={o.y}>{o.season}</option>)}
-              </select>
-            </label>
-            <button className="primary" type="submit">{t('transfers.offerContract')}</button>
-          </form>
-        )}
+        {!done && !mine && (isFree || agreed !== undefined) &&
+          contractForm(() => showTerms(actions.terms(playerId, Number(wage), years), 'transfers.signed'), t('transfers.offerContract'))}
+        {!done && mine && (yearOptions.length > 0
+          ? contractForm(() => showTerms(actions.renew(playerId, Number(wage), years), 'transfers.renewed'), t('transfers.renew'))
+          : <p className="muted small">{t('transfers.longest')}</p>)}
+        {mine && !done && <button type="button" onClick={() => actions.list(playerId)}>{t(p.listed ? 'transfers.unlist' : 'transfers.list')}</button>}
         <button type="button" onClick={onClose}>{t('common.close')}</button>
       </div>
     </div>

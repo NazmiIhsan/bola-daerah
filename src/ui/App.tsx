@@ -103,7 +103,7 @@ function GameShell({ game }: { game: GameApi }) {
         {tab === 'home' && <Dashboard game={game} onPlayMatch={() => { const ns = game.beginMatch(); if (ns && !ns.press) setInMatch(true) }} />}
         {tab === 'inbox' && <InboxScreen state={s} onRead={game.markRead} />}
         {tab === 'club' && <ClubScreen state={s} />}
-        {tab === 'squad' && <SquadScreen state={s} />}
+        {tab === 'squad' && <SquadScreen state={s} actions={game.transfers} />}
         {tab === 'transfers' && <TransfersScreen state={s} actions={game.transfers} />}
         {tab === 'tactics' && <TacticsScreen state={s} onChange={game.setTactics} />}
         {tab === 'table' && <TableScreen state={s} />}

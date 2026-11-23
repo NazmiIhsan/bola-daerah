@@ -30,3 +30,12 @@ test('expectation text follows the language', () => {
   show(newGame(1, 'petaling'))
   expect(screen.getByText(/Menjuarai liga/)).toBeInTheDocument()
 })
+
+test('finances show transfers (in the weekly net) and both budgets', () => {
+  const s = newGame(1, 'kapar')
+  show({ ...s, finance: { ...s.finance, history: [{ season: 2027, matchday: 1, tickets: 10000, sponsor: 5000, prize: 0, wages: 4000, transfers: -30000 }] } })
+  expect(screen.getByText('-RM 30,000')).toBeInTheDocument()
+  expect(screen.getByText('-RM 19,000')).toBeInTheDocument()
+  expect(screen.getByText('Transfer budget')).toBeInTheDocument()
+  expect(screen.getByText(`RM ${s.transfers.budgets.kapar.wage.toLocaleString('en-US')}`)).toBeInTheDocument()
+})

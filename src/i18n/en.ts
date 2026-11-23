@@ -247,6 +247,13 @@ export const en = {
   'transfers.refused.tooManyYears': 'The player wants a shorter contract.',
   'transfers.refused.gone': 'This deal is no longer possible.',
   'transfers.refused.squadTooSmall': 'Your squad would be too thin without this player.',
+  'club.wageBudget': 'Wage budget',
+  'transfers.renew': 'Renew contract',
+  'transfers.renewed': '{player} has a new contract!',
+  'transfers.longest': 'Already on the longest deal possible.',
+  'transfers.list': 'Put on transfer list',
+  'transfers.unlist': 'Take off transfer list',
+  'transfers.listed': 'Listed',
 } as const
 
 export type I18nKey = keyof typeof en

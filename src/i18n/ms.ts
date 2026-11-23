@@ -249,4 +249,11 @@ export const ms: Partial<Record<I18nKey, string>> = {
   'transfers.refused.tooManyYears': 'Pemain itu mahukan kontrak lebih pendek.',
   'transfers.refused.gone': 'Urusan ini tidak lagi boleh dibuat.',
   'transfers.refused.squadTooSmall': 'Skuad anda terlalu nipis tanpa pemain ini.',
+  'club.wageBudget': 'Bajet gaji',
+  'transfers.renew': 'Perbaharui kontrak',
+  'transfers.renewed': '{player} mendapat kontrak baharu!',
+  'transfers.longest': 'Sudah memegang kontrak paling panjang.',
+  'transfers.list': 'Letak dalam senarai jualan',
+  'transfers.unlist': 'Keluarkan dari senarai jualan',
+  'transfers.listed': 'Dijual',
 }

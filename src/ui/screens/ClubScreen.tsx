@@ -19,6 +19,7 @@ export function ClubScreen({ state }: { state: GameState }) {
   const clubName = (id: unknown) => (typeof id === 'string' ? state.clubs[id]?.name ?? id : '')
   const reasonText = (key: string, params?: Record<string, string | number>) =>
     t(key, { ...params, opp: clubName(params?.oppId) })
+  const budget = state.transfers.budgets[me]
   const lastHome = state.finance.history.find((h) => h.attendance !== undefined)
   const weeks = state.finance.history.slice(0, 6)
 
@@ -51,21 +52,23 @@ export function ClubScreen({ state }: { state: GameState }) {
         <h2>{t('club.finances')}</h2>
         <dl className="kv">
           <dt>{t('club.balance')}</dt><dd className="big-money">{money(state.finance.balance)}</dd>
+          <dt>{t('transfers.budget')}</dt><dd>{formatRM(budget.transfer)}</dd>
           <dt>{t('club.wageBill')}</dt><dd>{formatRM(wageBill(state, me))}</dd>
+          <dt>{t('club.wageBudget')}</dt><dd>{formatRM(budget.wage)}</dd>
           <dt>{t('club.attendance')}</dt><dd>{lastHome ? `${lastHome.attendance!.toLocaleString('en-US')} / ${state.clubs[me].capacity.toLocaleString('en-US')}` : '—'}</dd>
         </dl>
         {weeks.length > 0 && (
           <div className="table-wrap">
             <table>
-              <thead><tr><th className="left">{t('club.week')}</th><th>{t('club.tickets')}</th><th>{t('club.sponsor')}</th><th>{t('club.prize')}</th><th>{t('club.wages')}</th><th>{t('club.net')}</th></tr></thead>
+              <thead><tr><th className="left">{t('club.week')}</th><th>{t('club.tickets')}</th><th>{t('club.sponsor')}</th><th>{t('club.prize')}</th><th>{t('club.wages')}</th><th>{t('nav.transfers')}</th><th>{t('club.net')}</th></tr></thead>
               <tbody>
                 {weeks.map((w, i) => {
-                  const net = w.tickets + w.sponsor + w.prize - w.wages
+                  const net = w.tickets + w.sponsor + w.prize - w.wages + (w.transfers ?? 0)
                   return (
                     <tr key={i}>
                       <td className="left">{t('common.matchday', { n: w.matchday })}</td>
                       <td>{formatRM(w.tickets)}</td><td>{formatRM(w.sponsor)}</td><td>{formatRM(w.prize)}</td>
-                      <td>{money(-w.wages)}</td><td>{money(net)}</td>
+                      <td>{money(-w.wages)}</td><td>{money(w.transfers ?? 0)}</td><td>{money(net)}</td>
                     </tr>
                   )
                 })}
