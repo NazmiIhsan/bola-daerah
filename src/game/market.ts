@@ -97,3 +97,15 @@ export function wageDemand(state: GameState, playerId: string, clubId: string): 
 export function maxYears(p: Player): number {
   return p.age >= 32 ? 2 : 4
 }
+
+export const AI_SQUAD_MAX = 26
+const STARTERS: Record<Position, number> = { GK: 1, DF: 4, MF: 4, FW: 2 }
+
+/** How much better a player is than the weakest regular in his position at `clubId`. */
+export function improvement(state: GameState, clubId: string, p: Player): number {
+  const regulars = squad(state, clubId)
+    .filter((x) => x.position === p.position && x.id !== p.id)
+    .map(overall)
+    .sort((a, b) => b - a)
+  return overall(p) - (regulars[STARTERS[p.position] - 1] ?? 0)
+}

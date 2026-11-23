@@ -1,11 +1,12 @@
 import { wageBill, formatRM } from './finance'
 import { overall } from './generate'
-import { askingPrice, canLeave, maxYears, squad, SQUAD_MAX, transferWindow, wageDemand, willJoin } from './market'
+import { AI_SQUAD_MAX, askingPrice, canLeave, improvement, maxYears, playerValue, squad, SQUAD_MAX, squadRank, transferWindow, wageDemand, willJoin } from './market'
+import { isRivalry } from './rivals'
 import { addNews, type NewNews } from './news'
 import { applyReaction } from './reactions'
 import type { Rng } from './rng'
 import { dropFromTactics } from './tactics'
-import { FREE_AGENT, type GameState, type Player, type TransferRecord } from './types'
+import { FREE_AGENT, type GameState, type IncomingOffer, type Player, type TransferRecord } from './types'
 
 export type Refusal =
   | 'sacked' | 'windowClosed' | 'invalidAmount' | 'notForSale' | 'blocked' | 'squadFull' | 'transferBudget'
@@ -13,6 +14,7 @@ export type Refusal =
 type Refused = { kind: 'refused'; reason: Refusal }
 export type BidOutcome = { kind: 'accepted' } | { kind: 'counter'; fee: number } | { kind: 'rejected' } | Refused
 export type TermsOutcome = { kind: 'signed' } | { kind: 'counter'; wage: number } | { kind: 'rejected' } | Refused
+export type OfferOutcome = { kind: 'sold' } | { kind: 'declined' } | { kind: 'raised'; fee: number } | { kind: 'withdrawn' } | Refused
 export interface Act<O> { state: GameState; outcome: O }
 
 const HISTORY_CAP = 60
@@ -152,4 +154,68 @@ export function renewContract(state: GameState, playerId: string, wage: number, 
   if (reply) return reply
   const s = { ...state, players: { ...state.players, [playerId]: { ...p, wage, contractEnd } } }
   return { state: addNews(s, [{ kind: 'transfer', key: 'news.transfer.renewed', params: { clubId: me, player: fullName(p), season: contractEnd } }], rng), outcome: { kind: 'signed' } }
+}
+
+/** Put one of the user's players on the transfer list, or take them off it. */
+export function toggleListed(state: GameState, playerId: string): GameState {
+  const p = state.players[playerId]
+  if (state.career.kind === 'sacked' || !p || p.clubId !== state.userClubId) return state
+  return { ...state, players: { ...state.players, [playerId]: { ...p, listed: !p.listed } } }
+}
+
+const OFFER_LIFE = 2
+const RAISE = 1.15
+
+/** A bid for a user player from an AI club that wants, can pay for and can attract them. */
+export function makeOffer(state: GameState, playerId: string, rng: Rng): IncomingOffer | null {
+  const p = state.players[playerId]
+  const value = playerValue(p, state.season)
+  const share = p.listed ? 0.75 + 0.25 * rng.next() : 0.85 + 0.35 * rng.next()
+  const wanted = Math.round((value * share) / 1000) * 1000
+  const buyers = Object.keys(state.clubs).filter((id) =>
+    id !== p.clubId &&
+    state.transfers.budgets[id].transfer >= value * 0.75 &&
+    squad(state, id).length < AI_SQUAD_MAX &&
+    willJoin(state, playerId, id) &&
+    improvement(state, id, p) > 0)
+  if (buyers.length === 0) return null
+  const clubId = rng.pick(buyers)
+  const fee = Math.max(1000, Math.min(wanted, state.transfers.budgets[clubId].transfer))
+  return { id: `o${Math.floor(rng.next() * 2 ** 40).toString(36)}`, playerId, clubId, fee, expires: state.matchday + OFFER_LIFE }
+}
+
+const withOffers = (state: GameState, offers: IncomingOffer[]): GameState => ({ ...state, transfers: { ...state.transfers, offers } })
+
+/** Fans' view of a sale: worse for better players, worse still when a rival gets them. */
+function saleAnger(state: GameState, p: Player, buyerId: string): number {
+  const rank = squadRank(state, p)
+  const anger = rank <= 3 ? 6 : rank <= 11 ? 3 : 0
+  return anger && isRivalry(state.clubs[p.clubId], state.clubs[buyerId]) ? anger + 4 : anger
+}
+
+export function respondToOffer(state: GameState, offerId: string, answer: 'accept' | 'reject' | 'negotiate', rng: Rng): Act<OfferOutcome> {
+  if (state.career.kind === 'sacked') return refuse(state, 'sacked')
+  const offer = state.transfers.offers.find((o) => o.id === offerId)
+  const p = offer && state.players[offer.playerId]
+  if (!offer || !p || p.clubId !== state.userClubId || state.matchday > offer.expires) return refuse(state, 'gone')
+  const others = state.transfers.offers.filter((o) => o.id !== offerId)
+  if (answer === 'reject') return { state: withOffers(state, others), outcome: { kind: 'declined' } }
+  if (!transferWindow(state.matchday)) return refuse(state, 'windowClosed')
+
+  const budget = state.transfers.budgets[offer.clubId].transfer
+  if (answer === 'negotiate') {
+    const fee = Math.min(budget, Math.round((offer.fee * RAISE) / 1000) * 1000)
+    if (offer.negotiated || fee <= offer.fee || !rng.chance(0.5)) return { state: withOffers(state, others), outcome: { kind: 'withdrawn' } }
+    const raised = { ...offer, fee, negotiated: true }
+    return { state: withOffers(state, state.transfers.offers.map((o) => (o.id === offerId ? raised : o))), outcome: { kind: 'raised', fee } }
+  }
+
+  if (budget < offer.fee) return { state: withOffers(state, others), outcome: { kind: 'withdrawn' } }
+  if (!canLeave(state, p.id)) return refuse(state, 'squadTooSmall')
+  const anger = saleAnger(state, p, offer.clubId)
+  const name = fullName(p)
+  let s = movePlayer(state, p.id, offer.clubId, { fee: offer.fee, wage: wageDemand(state, p.id, offer.clubId), contractEnd: state.season + 2 })
+  if (anger) s = applyReaction(s, { fanDelta: -anger, boardDelta: 0, reasons: [{ key: anger >= 6 ? 'fans.reason.soldStar' : 'fans.reason.sold', params: { player: name } }] })
+  s = addNews(s, [{ kind: 'transfer', key: 'news.transfer.sold', params: { clubId: state.userClubId, oppId: offer.clubId, player: name, fee: formatRM(offer.fee) } }], rng)
+  return { state: s, outcome: { kind: 'sold' } }
 }
