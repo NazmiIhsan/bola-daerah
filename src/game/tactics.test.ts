@@ -93,3 +93,18 @@ test('morale nudges contribution by at most 10%', async () => {
   expect(hi).toBeGreaterThan(lo)
   expect(hi / lo).toBeLessThanOrEqual(1.1 / 0.95 + 1e-9)
 })
+
+test('dropFromTactics replaces only the departed player', async () => {
+  const { dropFromTactics } = await import('./tactics')
+  const { newGame } = await import('./generate')
+  const s = newGame(3, 'kapar')
+  const t = s.tactics.kapar
+  const gone = t.lineup[5]
+  const rest = Object.values(s.players).filter((p) => p.clubId === 'kapar' && p.id !== gone)
+  const next = dropFromTactics(t, gone, rest)
+  expect(next.lineup).toHaveLength(11)
+  expect(new Set([...next.lineup, ...next.subs]).size).toBe(next.lineup.length + next.subs.length)
+  expect([...next.lineup, ...next.subs]).not.toContain(gone)
+  t.lineup.forEach((id, i) => { if (i !== 5) expect(next.lineup[i]).toBe(id) })
+  expect(dropFromTactics(t, 'nobody', rest)).toBe(t)
+})

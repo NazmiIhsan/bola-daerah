@@ -106,3 +106,23 @@ export function reslot(t: Tactics, formation: FormationId, players: Record<strin
   const current = t.lineup.map((id) => players[id]).filter(Boolean)
   return { ...t, formation, lineup: pickBestLineup(current, formation).lineup }
 }
+
+/** Take a departed player out of the lineup or bench, filling the gap from `squad` without moving anyone else. */
+export function dropFromTactics(t: Tactics, playerId: string, squad: Player[]): Tactics {
+  if (!t.lineup.includes(playerId) && !t.subs.includes(playerId)) return t
+  const slot = t.lineup.indexOf(playerId)
+  const role = slot >= 0 ? slotRoles(t.formation)[slot] : undefined
+  const lineup = t.lineup.filter((id) => id !== playerId)
+  let subs = t.subs.filter((id) => id !== playerId)
+  const free = () => squad.filter((p) => p.id !== playerId && isAvailable(p) && !lineup.includes(p.id) && !subs.includes(p.id))
+  if (role) {
+    const pool = squad.filter((p) => p.id !== playerId && isAvailable(p) && !lineup.includes(p.id))
+    if (pool.length) {
+      const best = pool.reduce((a, b) => (contribution(b, role) > contribution(a, role) ? b : a))
+      lineup.splice(slot, 0, best.id)
+      subs = subs.filter((id) => id !== best.id)
+    }
+  }
+  const extra = free().sort((a, b) => contribution(b, b.position) - contribution(a, a.position)).slice(0, Math.max(0, t.subs.length - subs.length))
+  return { ...t, lineup, subs: [...subs, ...extra.map((p) => p.id)] }
+}
