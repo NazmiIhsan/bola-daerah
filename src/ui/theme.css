@@ -203,3 +203,24 @@ tr.me td { font-weight: 700; }
 .feed .red { color: var(--bad); font-weight: 600; }
 .feed .halftime, .feed .fulltime, .feed .kickoff { color: var(--muted); font-style: italic; }
 @media (max-width: 800px) { .match-grid { grid-template-columns: 1fr; } .score-big { font-size: 1.5rem; } .scorebar .team { font-size: .9rem; } }
+
+/* Inbox & news */
+.nav button { position: relative; }
+.badge { background: var(--accent); color: var(--accent-text); border-radius: 999px; font-size: .7rem; font-weight: 700; padding: 0 .45em; margin-left: auto; }
+@media (max-width: 640px) { .badge { position: absolute; top: 0; right: 0; margin: 0; } }
+.chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .8rem; }
+.chips button { padding: .3em .7em; border-radius: 999px; font-size: .85rem; }
+.chips button.on { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.news-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+.news-item { display: flex; gap: .6rem; width: 100%; text-align: left; background: var(--surface); align-items: flex-start; }
+.news-main { display: grid; gap: .15rem; min-width: 0; }
+.news-headline { font-weight: 500; }
+.news-list li.unread .news-headline { font-weight: 700; }
+.news-list li.unread .news-item { border-left: 3px solid var(--accent-2); }
+.news-list li.important .news-item { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.news-body { color: var(--muted); margin-top: .2rem; }
+.news-icon { font-size: 1.2rem; }
+.headlines { margin: 0; padding-left: 1.1rem; display: grid; gap: .3rem; }
+.headlines li.important { color: var(--bad); font-weight: 600; }
+.mood { display: grid; gap: .5rem; }
+.meter.danger > span { background: var(--bad); }

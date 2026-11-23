@@ -11,12 +11,15 @@ import { FixturesScreen } from './screens/FixturesScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { TacticsScreen } from './screens/TacticsScreen'
 import { MatchScreen } from './screens/MatchScreen'
+import { InboxScreen } from './screens/InboxScreen'
+import { unreadCount } from '../game/news'
 import { Kit, ClubLabel } from './components/bits'
 import { isSeasonOver } from '../game/season'
 
-type Tab = 'home' | 'squad' | 'tactics' | 'table' | 'fixtures' | 'settings'
+type Tab = 'home' | 'inbox' | 'squad' | 'tactics' | 'table' | 'fixtures' | 'settings'
 const TABS: Array<{ id: Tab; icon: string }> = [
   { id: 'home', icon: '🏠' },
+  { id: 'inbox', icon: '📰' },
   { id: 'squad', icon: '👥' },
   { id: 'tactics', icon: '📋' },
   { id: 'table', icon: '📊' },
@@ -71,11 +74,13 @@ function GameShell({ game }: { game: GameApi }) {
           <button key={x.id} className={tab === x.id ? 'on' : ''} aria-current={tab === x.id ? 'page' : undefined} onClick={() => setTab(x.id)}>
             <span aria-hidden className="icon">{x.icon}</span>
             <span className="label">{t(`nav.${x.id}`)}</span>
+            {x.id === 'inbox' && unreadCount(s) > 0 && <span className="badge" aria-label={`${unreadCount(s)} unread`}>{unreadCount(s)}</span>}
           </button>
         ))}
       </nav>
       <main className="content">
         {tab === 'home' && <Dashboard game={game} onPlayMatch={() => setInMatch(true)} />}
+        {tab === 'inbox' && <InboxScreen state={s} onRead={game.markRead} />}
         {tab === 'squad' && <SquadScreen state={s} />}
         {tab === 'tactics' && <TacticsScreen state={s} onChange={game.setTactics} />}
         {tab === 'table' && <TableScreen state={s} />}

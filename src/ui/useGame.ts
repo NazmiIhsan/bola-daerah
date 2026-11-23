@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { newGame } from '../game/generate'
-import { endSeason, isSeasonOver, playMatchday, seasonSummary, type SeasonSummary } from '../game/season'
+import { endSeason, isSeasonOver, playMatchday, preMatch, seasonSummary, type SeasonSummary } from '../game/season'
+import { markRead as markNewsRead } from '../game/news'
+import { answerPress as answerPressFn, skipPress as skipPressFn } from '../game/press'
+import { takeJob as takeJobFn } from '../game/career'
+import { createRng } from '../game/rng'
+import type { Answer } from '../game/types'
 import type { MatchState } from '../game/match/types'
 import type { GameState, Tactics } from '../game/types'
 import { deleteSave, listSaves, loadGame, saveGame, storageAvailable, type SaveMeta } from '../save/storage'
@@ -53,6 +58,27 @@ export function useGame() {
     setState({ ...state, tactics: { ...state.tactics, [state.userClubId]: t } })
   }, [state, setState])
 
+  const markRead = useCallback((id: string) => { if (state) setState(markNewsRead(state, id)) }, [state, setState])
+
+  /** Run pre-match logic (maybe a press conference) and return the resulting state. */
+  const beginMatch = useCallback((): GameState | null => {
+    if (!state) return null
+    const s = preMatch(state)
+    if (s !== state) setState(s)
+    return s
+  }, [state, setState])
+
+  const withRng = useCallback((fn: (s: GameState, rng: ReturnType<typeof createRng>) => GameState) => {
+    if (!state) return
+    const rng = createRng(state.rngState)
+    const s = fn(state, rng)
+    setState({ ...s, rngState: rng.state() })
+  }, [state, setState])
+
+  const answerPress = useCallback((answers: Answer[]) => withRng((s, rng) => answerPressFn(s, answers, rng)), [withRng])
+  const skipPress = useCallback(() => withRng((s, rng) => skipPressFn(s, rng)), [withRng])
+  const takeJob = useCallback((clubId: string) => { if (state) setState(takeJobFn(state, clubId)) }, [state, setState])
+
   const loadSlot = useCallback(async (n: number) => {
     const s = await loadGame(n)
     if (s) { setSlot(n); setSummary(null); setStateRaw(s) }
@@ -73,7 +99,7 @@ export function useGame() {
     await quit()
   }, [slot, storageOk, quit])
 
-  return { state, setState, slot, storageOk, saves, summary, clearSummary: () => setSummary(null), startNew, continueDay, setTactics, loadSlot, openImported, quit, removeSave }
+  return { state, setState, slot, storageOk, saves, summary, clearSummary: () => setSummary(null), startNew, continueDay, setTactics, markRead, beginMatch, answerPress, skipPress, takeJob, loadSlot, openImported, quit, removeSave }
 }
 
 export type GameApi = ReturnType<typeof useGame>

@@ -112,3 +112,15 @@ test('importing a valid file into a free slot opens that game', async () => {
   const header = await screen.findByRole('banner')
   expect(within(header).getByText('Jugra')).toBeInTheDocument()
 })
+
+test('after playing a week the inbox badge shows unread news and the dashboard shows a headline', async () => {
+  const user = await startKapar()
+  await playWeek(user)
+  await screen.findByText(/Matchday 2/)
+  // a post-match press conference may appear; skip it if so
+  const skip = screen.queryByRole('button', { name: 'Skip press conference' })
+  if (skip) await user.click(skip)
+  const inboxBtn = screen.getAllByRole('button', { name: /Inbox/ })[0]
+  expect(inboxBtn.textContent).toMatch(/\d/)
+  expect(screen.getByRole('region', { name: 'Latest news' })).toBeInTheDocument()
+})

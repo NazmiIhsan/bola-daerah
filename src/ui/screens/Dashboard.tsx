@@ -3,9 +3,10 @@ import { computeTable } from '../../game/table'
 import { isSeasonOver, userFixture } from '../../game/season'
 import type { GameApi } from '../useGame'
 import { ClubLabel } from '../components/bits'
+import { newsText } from '../../i18n'
 
 export function Dashboard({ game, onPlayMatch }: { game: GameApi; onPlayMatch(): void }) {
-  const { t } = useT()
+  const { t, lang } = useT()
   const s = game.state!
   const me = s.userClubId
   const div = s.divisions.find((d) => d.clubIds.includes(me))!
@@ -46,6 +47,26 @@ export function Dashboard({ game, onPlayMatch }: { game: GameApi; onPlayMatch():
         <p className="big-number">{pos}<span className="muted small"> / {table.length}</span></p>
         <p className="muted">{t('common.division', { n: div.id })} · {table[pos - 1].points} {t('table.pts')}</p>
       </section>
+      <section className="card mood">
+        <div className="sbar">
+          <span className="small">{t('dashboard.fans')}</span>
+          <span className="meter wide" role="meter" aria-label={t('dashboard.fans')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={s.fans.mood}><span style={{ width: `${s.fans.mood}%` }} /></span>
+          <strong className="small">{s.fans.mood}</strong>
+        </div>
+        <div className="sbar">
+          <span className="small">{t('dashboard.board')}</span>
+          <span className={`meter wide ${s.board.confidence < 30 ? 'danger' : ''}`} role="meter" aria-label={t('dashboard.board')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={s.board.confidence}><span style={{ width: `${s.board.confidence}%` }} /></span>
+          <strong className="small">{s.board.confidence}</strong>
+        </div>
+      </section>
+      {s.inbox.length > 0 && (
+        <section className="card" role="region" aria-label={t('dashboard.news')}>
+          <h2>{t('dashboard.news')}</h2>
+          <ul className="headlines">
+            {s.inbox.slice(0, 3).map((n) => <li key={n.id} className={n.important ? 'important' : ''}>{newsText(lang, n, (id) => s.clubs[id]?.name ?? id).headline}</li>)}
+          </ul>
+        </section>
+      )}
       <section className="card">
         <h2>{t('dashboard.lastResults')}</h2>
         {recent.length === 0 ? (
