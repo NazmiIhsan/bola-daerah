@@ -75,6 +75,21 @@ Attack focus ×1.02 attack, defence ×1.02 defence, fitness +25 weekly recovery 
 
 - [ ] Failing tests (Review Focus 3, 4) → implement → `npm test` → commit `feat(game): scouting, youth signings and training focus`.
 
+### Task 3b: Underdogs (owner's request: the same clubs always win)
+
+**Files:** Create `momentum.ts` + test; modify `types.ts`, `generate.ts`, `migrate.ts`, `season.ts`, `match/*`, `news.ts`.
+
+Measured before: 3 different champions in 60 seasons.
+
+**Interfaces — Produces:**
+```ts
+// GameState gains form: Record<string, number>   // hidden season form, 0.88..1.12; the user's club always plays at 1
+export function rollForm(state, rng): Record<string, number>       // gaussian ±; one dark horse from each division's lower half, one stumbling favourite
+export function moveReputations(ended: GameState): Record<string, Club>  // finish vs reputation rank, titles, promotion/relegation; gentle pull to the original level; 20..90
+export function underdogNews(ended): NewNews[]                     // champion or promoted club that was ranked low
+```
+Targets over 40 seasons: ≥ 5 different Division 1 champions, none with more than half; ≥ 9 different promoted clubs; the top three by starting reputation still win the most titles.
+
 ### Task 4: Youth & training screen, icons, market filter
 
 **Files:** Create `components/Icon.tsx`, `screens/YouthScreen.tsx` + tests; modify every screen using emoji, `SquadScreen`, `PlayerDialog`, `TransfersScreen`, `index.html`, i18n, `theme.css`, README.

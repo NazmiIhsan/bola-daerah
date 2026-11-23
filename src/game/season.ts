@@ -1,17 +1,18 @@
 import { createRng, type Rng } from './rng'
-import { generatePlayer, overall, squadQuality } from './generate'
+import { overall } from './generate'
 import { simulateFull } from './match/sim'
-import type { MatchState } from './match/types'
+import type { MatchOptions, MatchState } from './match/types'
 import { buildFixtures } from './schedule'
 import { computeTable } from './table'
 import { isAvailable, pickBestLineup } from './tactics'
-import { FREE_AGENT } from './types'
 import type { Division, Fixture, GameState, Player, Tactics } from './types'
 import { applyWeek, attendance, prizeMoney } from './finance'
 import { applyReaction, expectationFor, resultReaction, seasonEndReaction, shouldSack, userPosition, weeklyBoardCheck } from './reactions'
 import { addNews, matchdayNews, seasonEndNews, seasonStartNews } from './news'
 import { maybePress } from './press'
 import { developWeek } from './development'
+import { aiIntake, youthIntake } from './youth'
+import { darkHorseNews, moveReputations, rollForm, underdogNews } from './momentum'
 import { isRivalry } from './rivals'
 import { sack, takeJob } from './career'
 import { departureNews, expireContracts, refillSquads, resetMarket, transferWeek, trimFreeAgents } from './transferWeek'
@@ -116,8 +117,7 @@ function simulateRound(state: GameState, userMatch?: MatchState): GameState {
   const results = new Map<string, { home: number; away: number }>()
   for (const f of round) {
     const isUser = f.homeId === state.userClubId || f.awayId === state.userClubId
-    const opts = isUser && f.homeId === state.userClubId ? { homeBoost: userHomeBoost(state) } : {}
-    const match = isUser && userMatch ? userMatch : simulateFull(f.homeId, f.awayId, tactics, state.players, rng.int(1, 2 ** 31), opts)
+    const match = isUser && userMatch ? userMatch : simulateFull(f.homeId, f.awayId, tactics, state.players, rng.int(1, 2 ** 31), matchOptions(state, f))
     applyMatchEffects(players, match, rng)
     results.set(f.id, { ...match.score })
   }
@@ -151,7 +151,7 @@ export function seasonSummary(state: GameState): SeasonSummary {
 function rollOverSeason(ended: GameState): { state: GameState; left: Player[] } {
   const rng = createRng(ended.rngState)
   const { state, left } = expireContracts(ended, rng)
-  const { promoted, relegated } = seasonSummary(state)
+  const { promoted, relegated, champions } = seasonSummary(state)
   const divisions: [Division, Division] = [
     { id: 1, clubIds: [...state.divisions[0].clubIds.filter((c) => !relegated.includes(c)), ...promoted] },
     { id: 2, clubIds: [...state.divisions[1].clubIds.filter((c) => !promoted.includes(c)), ...relegated] },
@@ -160,14 +160,7 @@ function rollOverSeason(ended: GameState): { state: GameState; left: Player[] } 
   const players: Record<string, Player> = {}
   for (const p of Object.values(state.players)) {
     const aged = { ...p, age: p.age + 1, yellowCards: 0, suspendedMatches: 0, apps: 0, ovrStart: overall(p) }
-    if (aged.age > RETIRE_AFTER_AGE) {
-      if (p.clubId === FREE_AGENT) continue
-      const club = state.clubs[p.clubId]
-      const youth = generatePlayer(rng, p.clubId, p.position, squadQuality(club) - 3, rng.int(17, 19))
-      players[youth.id] = { ...youth, contractEnd: state.season + 3 }
-    } else {
-      players[aged.id] = aged
-    }
+    if (aged.age <= RETIRE_AFTER_AGE) players[aged.id] = aged
   }
 
   let next: GameState = {
@@ -175,10 +168,12 @@ function rollOverSeason(ended: GameState): { state: GameState; left: Player[] } 
     season: state.season + 1,
     matchday: 1,
     divisions,
+    clubs: moveReputations(state),
     players,
     fixtures: buildFixtures(divisions),
   }
-  next = resetMarket(trimFreeAgents(refillSquads(next, rng)))
+  next = resetMarket(trimFreeAgents(refillSquads(aiIntake(next, rng), rng)))
+  next = { ...next, form: rollForm(next, rng, champions), youth: { intake: next.career.kind === 'employed' ? youthIntake(rng, next, next.userClubId) : [] } }
   next = { ...next, rngState: rng.state() }
   const tactics = { ...state.tactics }
   for (const clubId of Object.keys(state.clubs)) tactics[clubId] = refreshTactics(next, clubId, clubId !== state.userClubId)
@@ -190,6 +185,20 @@ export function userHomeBoost(state: GameState): number {
   const f = userFixture(state)
   if (!f || f.homeId !== state.userClubId) return 1
   return 1 + (state.fans.mood - 50) / 1000
+}
+
+/** A club's edge in matches this season. */
+function clubSharpness(state: GameState, clubId: string): { attack: number; defence: number } {
+  const form = clubId === state.userClubId ? 1 : state.form[clubId] ?? 1
+  return { attack: form, defence: form }
+}
+
+/** Crowd and form effects for a fixture. */
+export function matchOptions(state: GameState, f: Pick<Fixture, 'homeId' | 'awayId'>): MatchOptions {
+  return {
+    homeBoost: f.homeId === state.userClubId ? userHomeBoost(state) : 1,
+    sharpness: { home: clubSharpness(state, f.homeId), away: clubSharpness(state, f.awayId) },
+  }
 }
 
 /** Before the user's match: maybe a pre-match press conference. */
@@ -257,7 +266,7 @@ export function endSeason(state: GameState): GameState {
     ended = { ...ended, finance: applyWeek(ended, { prize: prizeMoney(division, position) }) }
     ended = applyReaction(ended, seasonEndReaction(ended))
   }
-  ended = addNews(ended, seasonEndNews(ended), rng)
+  ended = addNews(ended, [...underdogNews(ended), ...seasonEndNews(ended)], rng)
   const sacked = ended.career.kind === 'employed' && shouldSack(ended)
   const rolled = rollOverSeason({ ...ended, rngState: rng.state() })
   let next = rolled.state
@@ -265,7 +274,7 @@ export function endSeason(state: GameState): GameState {
   if (next.career.kind === 'employed') {
     next = { ...next, board: { ...expectationFor(next), confidence: next.board.confidence } }
     if (sacked) next = sack(next, rng2)
-    else next = addNews(next, [...departureNews(next.userClubId, rolled.left), ...seasonStartNews(next)], rng2)
+    else next = addNews(next, [...departureNews(next.userClubId, rolled.left), ...seasonStartNews(next), ...darkHorseNews(next, rng2)], rng2)
   }
   next = transferWeek(next, rng2)
   return { ...next, rngState: rng2.state() }

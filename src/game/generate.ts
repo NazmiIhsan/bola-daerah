@@ -3,6 +3,8 @@ import { CLUBS, DIVISION_1_IDS, DIVISION_2_IDS } from './data/clubs'
 import * as N from './data/names'
 import { buildFixtures } from './schedule'
 import { pickBestLineup } from './tactics'
+import { rollForm } from './momentum'
+import { youthIntake } from './youth'
 import { expectationFor } from './reactions'
 import { FREE_AGENT } from './types'
 import type { AttrKey, Attributes, Budget, Club, Division, GameState, Player, Position, Tactics, TransferState } from './types'
@@ -149,6 +151,8 @@ export function withContractsAndFreeAgents(players: Record<string, Player>, rng:
   return out
 }
 
+export const FORM_SEED = 0x7a3d91c
+const YOUTH_SEED = 0x2f6e2b1
 export const CONTRACT_SEED = 0x51ed270b
 
 export function newGame(seed: number, userClubId: string): GameState {
@@ -186,8 +190,10 @@ export function newGame(seed: number, userClubId: string): GameState {
     press: null,
     career: { kind: 'employed' },
     transfers: initialTransfers(clubs, userClubId, startingBalance(clubs[userClubId])),
+    form: {},
     training: 'balanced',
     youth: { intake: [] },
   }
-  return { ...state, board: expectationFor(state) }
+  const intake = youthIntake(createRng(seed ^ YOUTH_SEED), state, userClubId)
+  return { ...state, board: expectationFor(state), youth: { intake }, form: rollForm(state, createRng(seed ^ FORM_SEED)) }
 }

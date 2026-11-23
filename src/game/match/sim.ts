@@ -40,6 +40,7 @@ export function createMatch(homeId: string, awayId: string, tactics: Record<stri
     rngState: createRng(seed).state(),
     finished: false,
     homeBoost: opts.homeBoost ?? 1,
+    ...(opts.sharpness ? { sharpness: opts.sharpness } : {}),
   }
 }
 
@@ -81,7 +82,11 @@ export function stepMinute(state: MatchState, players: Record<string, Player>): 
     away: cloneTeam(state.away),
   }
   const minute = s.minute
-  const strength = (side: Side) => teamStrength(s[side].onPitch.map((id) => (id ? players[id] : undefined)), s[side].tactics.formation)
+  const strength = (side: Side) => {
+    const base = teamStrength(s[side].onPitch.map((id) => (id ? players[id] : undefined)), s[side].tactics.formation)
+    const edge = s.sharpness?.[side]
+    return edge ? { ...base, attack: base.attack * edge.attack, defence: base.defence * edge.defence } : base
+  }
   const st = { home: strength('home'), away: strength('away') }
 
   // Who attacks this minute

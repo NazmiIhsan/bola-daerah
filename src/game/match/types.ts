@@ -34,12 +34,17 @@ export interface MatchState {
   finished: boolean
   /** multiplier on home attack (fan atmosphere), default 1 */
   homeBoost: number
+  sharpness?: Sharpness
 }
 
 export type TeamChange =
   | { kind: 'sub'; offId: string; onId: string }
   | { kind: 'tactics'; formation?: FormationId; style?: Style }
 
+/** Multipliers on a side's attack and defence. */
+export type Sharpness = Partial<Record<Side, { attack: number; defence: number }>>
+
 export interface MatchOptions {
   homeBoost?: number
+  sharpness?: Sharpness
 }

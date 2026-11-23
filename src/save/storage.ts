@@ -112,5 +112,6 @@ function isConsistent(s: GameState): boolean {
   if (!tr.offers.every((o) => o && o.playerId in s.players && o.clubId in s.clubs)) return false
   if (!Object.values(s.players).every((p) => p && (p.clubId === FREE_AGENT || p.clubId in s.clubs))) return false
   if (!TRAINING_FOCUSES.includes(s.training) || !isArr(s.youth?.intake)) return false
+  if (!s.form || typeof s.form !== 'object' || !inDivs.every((c) => typeof s.form[c] === 'number')) return false
   return s.fixtures.every((f) => f && f.homeId in s.clubs && f.awayId in s.clubs && typeof f.round === 'number')
 }

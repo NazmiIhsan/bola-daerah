@@ -1,8 +1,9 @@
 import { formatRM } from './finance'
-import { generatePlayer, initialTransfers, overall, squadQuality } from './generate'
+import { initialTransfers, overall } from './generate'
 import { AI_SQUAD_MAX, askingPrice, canLeave, improvement, justJoined, playerValue, POSITION_MIN, squad, transferWindow, wageDemand, willJoin } from './market'
 import { addNews, type NewNews } from './news'
 import type { Rng } from './rng'
+import { generateYouth } from './youth'
 import { fullName, makeOffer, movePlayer } from './transfers'
 import { FREE_AGENT, type GameState, type Player, type Position } from './types'
 
@@ -144,7 +145,6 @@ const AI_RENEW_CHANCE = 0.85
 const FREE_AGENT_CAP = 40
 const REFILL_SIZE = 20
 const REFILL_SHAPE: Record<Position, number> = { GK: 2, DF: 7, MF: 7, FW: 4 }
-const YOUTH_YEARS = 3
 
 /**
  * Contracts that end with this season. The user's players leave; AI clubs renew most of theirs.
@@ -177,7 +177,7 @@ export function refillSquads(state: GameState, rng: Rng): GameState {
     const positions = Object.keys(REFILL_SHAPE) as Position[]
     let size = mates.length
     const add = (pos: Position) => {
-      const youth = { ...generatePlayer(rng, club.id, pos, squadQuality(club) - 3, rng.int(17, 19)), contractEnd: state.season + YOUTH_YEARS }
+      const youth = generateYouth(rng, club, pos, state.season)
       players[youth.id] = youth
       count[pos]++
       size++

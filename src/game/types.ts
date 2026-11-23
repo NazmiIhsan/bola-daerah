@@ -106,6 +106,8 @@ export interface GameState {
   press: PressConference | null
   career: CareerStatus
   transfers: TransferState
+  /** hidden season form by clubId, around 1 */
+  form: Record<string, number>
   training: TrainingFocus
   /** this season's academy candidates, waiting for the user's decision */
   youth: { intake: Player[] }

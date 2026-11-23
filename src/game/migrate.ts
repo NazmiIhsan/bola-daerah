@@ -1,5 +1,6 @@
-import { CONTRACT_SEED, initialTransfers, overall, startingBalance, wageFor, withContractsAndFreeAgents } from './generate'
+import { CONTRACT_SEED, FORM_SEED, initialTransfers, overall, startingBalance, wageFor, withContractsAndFreeAgents } from './generate'
 import { expectationFor } from './reactions'
+import { rollForm } from './momentum'
 import { createRng } from './rng'
 import type { GameState, Player } from './types'
 import { SaveError } from '../save/errors'
@@ -56,5 +57,5 @@ function v3to4(raw: Raw): Raw {
   const s = raw as unknown as Old
   const players: Record<string, Player> = {}
   for (const p of Object.values(s.players)) players[p.id] = { ...p, apps: 0, ovrStart: overall(p) }
-  return { ...s, version: 4, players, training: 'balanced', youth: { intake: [] } }
+  return { ...s, version: 4, players, form: rollForm(s, createRng(s.seed ^ FORM_SEED)), training: 'balanced', youth: { intake: [] } }
 }
