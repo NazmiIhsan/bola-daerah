@@ -13,6 +13,7 @@ import { addNews, matchdayNews, seasonEndNews, seasonStartNews } from './news'
 import { maybePress } from './press'
 import { isRivalry } from './rivals'
 import { sack, takeJob } from './career'
+import { departureNews, expireContracts, refillSquads, resetMarket, transferWeek, trimFreeAgents } from './transferWeek'
 
 export const ROUNDS_PER_SEASON = 18
 export const RETIRE_AFTER_AGE = 35
@@ -145,8 +146,9 @@ export function seasonSummary(state: GameState): SeasonSummary {
   }
 }
 
-function rollOverSeason(state: GameState): GameState {
-  const rng = createRng(state.rngState)
+function rollOverSeason(ended: GameState): { state: GameState; left: Player[] } {
+  const rng = createRng(ended.rngState)
+  const { state, left } = expireContracts(ended, rng)
   const { promoted, relegated } = seasonSummary(state)
   const divisions: [Division, Division] = [
     { id: 1, clubIds: [...state.divisions[0].clubIds.filter((c) => !relegated.includes(c)), ...promoted] },
@@ -166,18 +168,19 @@ function rollOverSeason(state: GameState): GameState {
     }
   }
 
-  const next: GameState = {
+  let next: GameState = {
     ...state,
-    rngState: rng.state(),
     season: state.season + 1,
     matchday: 1,
     divisions,
     players,
     fixtures: buildFixtures(divisions),
   }
+  next = resetMarket(trimFreeAgents(refillSquads(next, rng)))
+  next = { ...next, rngState: rng.state() }
   const tactics = { ...state.tactics }
   for (const clubId of Object.keys(state.clubs)) tactics[clubId] = refreshTactics(next, clubId, clubId !== state.userClubId)
-  return { ...next, tactics }
+  return { state: { ...next, tactics }, left }
 }
 
 /** 1 + (fan mood − 50) / 1000 when the user plays at home this round, else 1. */
@@ -237,6 +240,7 @@ export function playMatchday(state: GameState, userMatch?: MatchState): GameStat
   s = addNews({ ...s, matchday: state.matchday }, matchdayNews(before, s), rng)
   s = { ...s, matchday: state.matchday + 1 }
   if (fixture?.result) s = { ...s, press: maybePress(s, 'post', fixture, rng) }
+  s = transferWeek(s, rng)
   // In-season rule only; the season-end verdict is endSeason's job.
   if (shouldSack({ ...s, matchday: Math.min(s.matchday, ROUNDS_PER_SEASON) })) s = sack(s, rng)
   return { ...s, rngState: rng.state() }
@@ -252,13 +256,15 @@ export function endSeason(state: GameState): GameState {
   }
   ended = addNews(ended, seasonEndNews(ended), rng)
   const sacked = ended.career.kind === 'employed' && shouldSack(ended)
-  let next = rollOverSeason({ ...ended, rngState: rng.state() })
+  const rolled = rollOverSeason({ ...ended, rngState: rng.state() })
+  let next = rolled.state
   const rng2 = createRng(next.rngState)
   if (next.career.kind === 'employed') {
     next = { ...next, board: { ...expectationFor(next), confidence: next.board.confidence } }
     if (sacked) next = sack(next, rng2)
-    else next = addNews(next, seasonStartNews(next), rng2)
+    else next = addNews(next, [...departureNews(next.userClubId, rolled.left), ...seasonStartNews(next)], rng2)
   }
+  next = transferWeek(next, rng2)
   return { ...next, rngState: rng2.state() }
 }
 

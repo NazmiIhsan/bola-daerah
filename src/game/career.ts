@@ -1,5 +1,5 @@
 import { createRng, type Rng } from './rng'
-import { startingBalance } from './generate'
+import { budgetFor, startingBalance } from './generate'
 import { expectationFor } from './reactions'
 import { addNews } from './news'
 import type { GameState } from './types'
@@ -20,19 +20,29 @@ export function makeOffers(state: GameState, rng: Rng): string[] {
   return offers
 }
 
+/** Forget the user's open negotiations and transfer list. */
+function closeBusiness(state: GameState): GameState {
+  const players = { ...state.players }
+  for (const p of Object.values(players)) if (p.listed) players[p.id] = { ...p, listed: false }
+  return { ...state, players, transfers: { ...state.transfers, offers: [], agreed: {}, blocked: [] } }
+}
+
 export function sack(state: GameState, rng: Rng): GameState {
   const offers = makeOffers(state, rng)
-  const s = addNews(state, [{ kind: 'career', key: 'news.career.sacked', params: { clubId: state.userClubId }, important: true }], rng)
+  const s = addNews(closeBusiness(state), [{ kind: 'career', key: 'news.career.sacked', params: { clubId: state.userClubId }, important: true }], rng)
   return { ...s, press: null, career: { kind: 'sacked', offers }, rngState: rng.state() }
 }
 
 export function takeJob(state: GameState, clubId: string): GameState {
   const rng = createRng(state.rngState)
+  const closed = closeBusiness(state)
+  const balance = startingBalance(state.clubs[clubId])
   const base: GameState = {
-    ...state,
+    ...closed,
     userClubId: clubId,
     fans: { mood: 60, log: [] },
-    finance: { balance: startingBalance(state.clubs[clubId]), history: [], transferNet: 0 },
+    finance: { balance, history: [], transferNet: 0 },
+    transfers: { ...closed.transfers, budgets: { ...closed.transfers.budgets, [clubId]: budgetFor(state.clubs[clubId], balance) } },
     career: { kind: 'employed' },
     press: null,
   }

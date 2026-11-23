@@ -1,6 +1,6 @@
 import { formatRM } from './finance'
-import { overall } from './generate'
-import { AI_SQUAD_MAX, askingPrice, canLeave, improvement, playerValue, squad, transferWindow, wageDemand, willJoin } from './market'
+import { generatePlayer, initialTransfers, overall, squadQuality } from './generate'
+import { AI_SQUAD_MAX, askingPrice, canLeave, improvement, playerValue, POSITION_MIN, squad, transferWindow, wageDemand, willJoin } from './market'
 import { addNews, type NewNews } from './news'
 import type { Rng } from './rng'
 import { fullName, makeOffer, movePlayer } from './transfers'
@@ -131,8 +131,80 @@ export function transferWeek(state: GameState, rng: Rng): GameState {
     ...state,
     transfers: { ...state.transfers, agreed: {}, blocked: [], offers: open ? state.transfers.offers.filter((o) => o.expires >= state.matchday) : [] },
   }
+  if (!open && state.career.kind === 'sacked') return start
   if (!open) return addNews(start, reminders(start), rng)
   const traded = aiDeals(start, rng)
+  if (state.career.kind === 'sacked') return addNews(traded, dealNews(start, traded), rng)
   const s = newOffers(traded, rng)
   return addNews(s, [...offerNews(start, s), ...reminders(s), ...rumour(s, rng), ...dealNews(start, s)], rng)
+}
+
+const AI_RENEW_CHANCE = 0.85
+const FREE_AGENT_CAP = 40
+const REFILL_SIZE = 20
+const REFILL_SHAPE: Record<Position, number> = { GK: 2, DF: 7, MF: 7, FW: 4 }
+const YOUTH_YEARS = 3
+
+/**
+ * Contracts that end with this season. The user's players leave; AI clubs renew most of theirs.
+ * A sacked manager's club is run like an AI club. `left` = players the user has lost.
+ */
+export function expireContracts(state: GameState, rng: Rng): { state: GameState; left: Player[] } {
+  const players: Record<string, Player> = {}
+  const left: Player[] = []
+  for (const p of Object.values(state.players)) {
+    if (p.clubId === FREE_AGENT || p.contractEnd > state.season) { players[p.id] = p; continue }
+    const isUsers = state.career.kind === 'employed' && p.clubId === state.userClubId
+    if (!isUsers && rng.chance(AI_RENEW_CHANCE)) {
+      players[p.id] = { ...p, contractEnd: state.season + rng.int(1, 3) }
+      continue
+    }
+    if (isUsers) left.push(p)
+    const { listed: _listed, ...rest } = p
+    players[p.id] = { ...rest, clubId: FREE_AGENT }
+  }
+  return { state: { ...state, players }, left }
+}
+
+/** Promote local youngsters until every club has a playable squad. */
+export function refillSquads(state: GameState, rng: Rng): GameState {
+  const players = { ...state.players }
+  for (const club of Object.values(state.clubs)) {
+    const mates = squad(state, club.id)
+    const count: Record<Position, number> = { GK: 0, DF: 0, MF: 0, FW: 0 }
+    for (const p of mates) count[p.position]++
+    const positions = Object.keys(REFILL_SHAPE) as Position[]
+    let size = mates.length
+    const add = (pos: Position) => {
+      const youth = { ...generatePlayer(rng, club.id, pos, squadQuality(club) - 3, rng.int(17, 19)), contractEnd: state.season + YOUTH_YEARS }
+      players[youth.id] = youth
+      count[pos]++
+      size++
+    }
+    for (const pos of positions) while (count[pos] < POSITION_MIN[pos]) add(pos)
+    for (const pos of positions) while (size < REFILL_SIZE && count[pos] < REFILL_SHAPE[pos]) add(pos)
+  }
+  return { ...state, players }
+}
+
+/** Keep only the best free agents so the pool (and save file) stays small. */
+export function trimFreeAgents(state: GameState): GameState {
+  const pool = squad(state, FREE_AGENT).sort((a, b) => overall(b) - overall(a) || a.id.localeCompare(b.id))
+  if (pool.length <= FREE_AGENT_CAP) return state
+  const players = { ...state.players }
+  for (const p of pool.slice(FREE_AGENT_CAP)) delete players[p.id]
+  return { ...state, players }
+}
+
+/** New-season budgets for everyone and a clean slate for negotiations. */
+export function resetMarket(state: GameState): GameState {
+  return { ...state, transfers: { ...initialTransfers(state.clubs, state.userClubId, state.finance.balance), history: state.transfers.history } }
+}
+
+/** News for players the user lost on a free. */
+export function departureNews(clubId: string, left: Player[]): NewNews[] {
+  return [...left]
+    .sort((a, b) => overall(b) - overall(a))
+    .slice(0, 3)
+    .map((p) => ({ kind: 'transfer', key: 'news.transfer.left', params: { clubId, player: fullName(p) }, important: true }))
 }

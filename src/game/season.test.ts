@@ -115,15 +115,15 @@ test('suspended or injured players are not picked by AI clubs', () => {
   expect(s.tactics.klang.lineup).not.toContain(pid)
 })
 
-test('squads stay 22–25 after endSeason retirements', () => {
+test('squads stay 17–28 after endSeason retirements', () => {
   let s = rigSeason(fresh(), ['kapar', 'jugra'], ['petaling', 'klang'])
   // make some players old so they retire
   const players = { ...s.players }
   for (const p of Object.values(players).slice(0, 60)) players[p.id] = { ...p, age: 35 }
   s = endSeason({ ...s, players })
   for (const c of Object.keys(s.clubs)) {
-    expect(squadSize(s, c)).toBeGreaterThanOrEqual(22)
-    expect(squadSize(s, c)).toBeLessThanOrEqual(25)
+    expect(squadSize(s, c)).toBeGreaterThanOrEqual(17)
+    expect(squadSize(s, c)).toBeLessThanOrEqual(28)
   }
   expect(Object.values(s.players).every((p) => p.age <= 35)).toBe(true)
   for (const c of Object.keys(s.clubs)) for (const id of s.tactics[c].lineup) expect(s.players[id]).toBeDefined()
