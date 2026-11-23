@@ -106,7 +106,7 @@ describe('contracts, budgets and free agents', async () => {
       const s = newGame(seed, 'petaling')
       for (const id of Object.keys(s.clubs)) {
         const r = s.transfers.budgets[id].wage / wageBill(s, id)
-        expect({ id, ok: r >= 1.02 && r <= 1.6, r }).toMatchObject({ ok: true })
+        expect({ id, ok: r >= 1.02 && r <= 1.7, r }).toMatchObject({ ok: true })
       }
       expect(s.transfers.budgets.petaling.transfer).toBeGreaterThan(s.transfers.budgets.jugra.transfer)
     }

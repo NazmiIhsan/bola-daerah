@@ -118,7 +118,7 @@ const START_FREE_AGENTS = 24
 /** What the board allows for weekly wages: a full squad a little under the club's best XI level,
  * which leaves every club some headroom over its starting wage bill. */
 export function wageBudgetFor(club: Pick<Club, 'reputation'>): number {
-  const q = 7 + ((club.reputation - 30) * 6) / 50 - 0.4
+  const q = 7 + ((club.reputation - 30) * 6) / 50 - 0.2
   return Math.round((23 * q ** 2 * 14 * (0.6 + club.reputation / 100)) / 100) * 100
 }
 
