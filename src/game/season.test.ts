@@ -144,3 +144,59 @@ test('matchTactics fixes an invalid user lineup and keeps a valid one', async ()
   expect(t.lineup).toHaveLength(11)
   expect(t.style).toBe(s.tactics.kapar.style)
 })
+
+describe('season integration (plan 2)', () => {
+  test('playMatchday books the week, reacts, and writes news', async () => {
+    const s0 = fresh()
+    const s = playMatchday(s0)
+    expect(s.finance.history).toHaveLength(1)
+    expect(s.finance.history[0].matchday).toBe(1)
+    expect(s.inbox.some((n) => n.kind === 'match')).toBe(true)
+    const f = s.fixtures.find((x) => x.round === 1 && (x.homeId === 'kapar' || x.awayId === 'kapar'))!
+    const g = f.homeId === 'kapar' ? f.result!.home : f.result!.away
+    const c = f.homeId === 'kapar' ? f.result!.away : f.result!.home
+    if (g !== c) expect(s.fans.log[0].delta).not.toBe(0)
+    if (f.homeId === 'kapar') expect(s.finance.history[0].attendance).toBeGreaterThan(0)
+  })
+
+  test('starters gain morale after a win and lose it after a loss', () => {
+    const s0 = fresh()
+    const fx = userFixture(s0)!
+    const home = fx.homeId === 'kapar'
+    const make = (mine: number, theirs: number) => {
+      const m = { ...createMatch(fx.homeId, fx.awayId, s0.tactics, 1), minute: 90, finished: true, score: home ? { home: mine, away: theirs } : { home: theirs, away: mine } }
+      return playMatchday(s0, m)
+    }
+    const starter = s0.tactics.kapar.lineup[3]
+    expect(make(3, 0).players[starter].morale).toBeGreaterThan(s0.players[starter].morale)
+    expect(make(0, 3).players[starter].morale).toBeLessThan(s0.players[starter].morale)
+  })
+
+  test('preMatch creates a press conference before a derby, none on a bye', async () => {
+    const { preMatch } = await import('./season')
+    const k = newGame(1, 'klang')
+    const derby = k.fixtures.find((f) => [f.homeId, f.awayId].sort().join() === 'klang,petaling')!
+    expect(preMatch({ ...k, matchday: derby.round }).press).not.toBeNull()
+    const p = newGame(1, 'petaling')
+    const played = new Set(p.fixtures.filter((f) => f.homeId === 'petaling' || f.awayId === 'petaling').map((f) => f.round))
+    const bye = [...Array(18).keys()].map((i) => i + 1).find((r) => !played.has(r))!
+    expect(preMatch({ ...p, matchday: bye }).press).toBeNull()
+  })
+
+  test('endSeason adds prize money, resets the board target for the new division, adds season news', () => {
+    const s = endSeason(rigSeason(fresh(), ['kapar', 'jugra'], ['petaling', 'klang']))
+    expect(s.finance.history.some((h) => h.prize > 0)).toBe(true)
+    expect(s.board.expectation).toBe('avoidRelegation') // kapar is now in div 1 with low reputation
+    expect(s.inbox.some((n) => n.key === 'news.season.promoted')).toBe(true)
+    expect(s.inbox.some((n) => n.key.startsWith('news.board.expectation.'))).toBe(true)
+  })
+
+  test('userHomeBoost', async () => {
+    const { userHomeBoost } = await import('./season')
+    const s = fresh()
+    const fx = userFixture(s)!
+    const atHome = fx.homeId === 'kapar'
+    const boost = userHomeBoost({ ...s, fans: { ...s.fans, mood: 100 } })
+    expect(boost).toBe(atHome ? 1.05 : 1)
+  })
+})
