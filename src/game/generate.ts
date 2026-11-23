@@ -3,6 +3,7 @@ import { CLUBS, DIVISION_1_IDS, DIVISION_2_IDS } from './data/clubs'
 import * as N from './data/names'
 import { buildFixtures } from './schedule'
 import { pickBestLineup } from './tactics'
+import { expectationFor } from './reactions'
 import type { Division } from './types'
 import type { AttrKey, Attributes, Club, GameState, Player, Position, Tactics } from './types'
 
@@ -126,7 +127,7 @@ export function newGame(seed: number, userClubId: string): GameState {
     { id: 1, clubIds: [...DIVISION_1_IDS] },
     { id: 2, clubIds: [...DIVISION_2_IDS] },
   ]
-  return {
+  const state: GameState = {
     version: 2,
     seed,
     rngState: rng.state(),
@@ -145,4 +146,5 @@ export function newGame(seed: number, userClubId: string): GameState {
     press: null,
     career: { kind: 'employed' },
   }
+  return { ...state, board: expectationFor(state) }
 }

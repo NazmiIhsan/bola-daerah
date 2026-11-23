@@ -1,4 +1,5 @@
 import { startingBalance, wageFor } from './generate'
+import { expectationFor } from './reactions'
 import type { GameState, Player } from './types'
 import { SaveError } from '../save/errors'
 
@@ -12,7 +13,7 @@ export function migrate(raw: Record<string, unknown>): GameState {
     const club = s.clubs[p.clubId]
     players[p.id] = { ...p, wage: typeof p.wage === 'number' ? p.wage : wageFor(p, club ?? { reputation: 40 }) }
   }
-  return {
+  const migrated: GameState = {
     ...s,
     version: 2,
     players,
@@ -23,4 +24,5 @@ export function migrate(raw: Record<string, unknown>): GameState {
     press: null,
     career: { kind: 'employed' },
   }
+  return { ...migrated, board: expectationFor(migrated) }
 }

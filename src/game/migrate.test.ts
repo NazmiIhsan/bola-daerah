@@ -23,3 +23,7 @@ test('unknown versions throw unsupported_version', () => {
   expect(() => migrate({ ...makeV1(), version: 7 })).toThrow(SaveError)
   try { migrate({ ...makeV1(), version: 7 }) } catch (e) { expect((e as SaveError).code).toBe('unsupported_version') }
 })
+
+test('migrated saves get a real board expectation', () => {
+  expect(migrate(makeV1()).board).toMatchObject({ expectation: 'promotion', targetPosition: 2 })
+})
