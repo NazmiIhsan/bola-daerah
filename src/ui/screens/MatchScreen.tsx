@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../LanguageContext'
 import { applyChange, createMatch, stepMinute } from '../../game/match/sim'
 import type { MatchEvent, MatchState, Side } from '../../game/match/types'
-import { matchTactics, userFixture } from '../../game/season'
+import { matchTactics, userFixture, userHomeBoost } from '../../game/season'
 import { FORMATIONS } from '../../game/tactics'
 import { createRng } from '../../game/rng'
 import { commentary } from '../../i18n'
@@ -25,7 +25,7 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
   const { t, lang } = useT()
   const fixture = userFixture(state)!
   const [match, setMatch] = useState<MatchState>(() =>
-    createMatch(fixture.homeId, fixture.awayId, matchTactics(state), (state.rngState ^ (state.matchday * 2654435761)) >>> 0),
+    createMatch(fixture.homeId, fixture.awayId, matchTactics(state), (state.rngState ^ (state.matchday * 2654435761)) >>> 0, { homeBoost: userHomeBoost(state) }),
   )
   const [running, setRunning] = useState(true)
   const [speed, setSpeed] = useState(1)

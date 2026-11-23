@@ -13,6 +13,8 @@ import { TacticsScreen } from './screens/TacticsScreen'
 import { MatchScreen } from './screens/MatchScreen'
 import { InboxScreen } from './screens/InboxScreen'
 import { ClubScreen } from './screens/ClubScreen'
+import { PressScreen } from './screens/PressScreen'
+import { SackedScreen } from './screens/SackedScreen'
 import { unreadCount } from '../game/news'
 import { Kit, ClubLabel } from './components/bits'
 import { isSeasonOver } from '../game/season'
@@ -66,7 +68,21 @@ function GameShell({ game }: { game: GameApi }) {
         </div>
       </header>
       {!game.storageOk && <p className="banner warn">{t('storage.unavailable')}</p>}
-      {inMatch ? (
+      {s.career.kind === 'sacked' ? (
+        <main className="content full">
+          <SackedScreen state={s} onTakeJob={(id) => { game.takeJob(id); setTab('home') }} onNewGame={() => void game.quit()} />
+        </main>
+      ) : s.press && !inMatch ? (
+        <main className="content full">
+          <PressScreen
+            key={s.press.fixtureId + s.press.kind}
+            press={s.press}
+            state={s}
+            onSubmit={(a) => { const pre = s.press!.kind === 'pre'; game.answerPress(a); if (pre) setInMatch(true) }}
+            onSkip={() => { const pre = s.press!.kind === 'pre'; game.skipPress(); if (pre) setInMatch(true) }}
+          />
+        </main>
+      ) : inMatch ? (
         <main className="content full">
           <MatchScreen state={s} onFinish={(m) => { setInMatch(false); game.continueDay(m) }} />
         </main>
@@ -81,7 +97,7 @@ function GameShell({ game }: { game: GameApi }) {
         ))}
       </nav>
       <main className="content">
-        {tab === 'home' && <Dashboard game={game} onPlayMatch={() => setInMatch(true)} />}
+        {tab === 'home' && <Dashboard game={game} onPlayMatch={() => { const ns = game.beginMatch(); if (ns && !ns.press) setInMatch(true) }} />}
         {tab === 'inbox' && <InboxScreen state={s} onRead={game.markRead} />}
         {tab === 'club' && <ClubScreen state={s} />}
         {tab === 'squad' && <SquadScreen state={s} />}

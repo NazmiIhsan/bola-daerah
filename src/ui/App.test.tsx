@@ -7,10 +7,17 @@ afterEach(() => {
   try { localStorage.clear() } catch { /* ignore */ }
 })
 
+async function skipPressIfAny(user: ReturnType<typeof userEvent.setup>) {
+  const skip = screen.queryByRole('button', { name: 'Skip press conference' })
+  if (skip) await user.click(skip)
+}
+
 async function playWeek(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'Play match' }))
+  await skipPressIfAny(user)
   await user.click(await screen.findByRole('button', { name: 'Skip to end' }))
   await user.click(screen.getByRole('button', { name: 'Finish' }))
+  await skipPressIfAny(user)
 }
 
 async function startKapar() {
@@ -117,10 +124,36 @@ test('after playing a week the inbox badge shows unread news and the dashboard s
   const user = await startKapar()
   await playWeek(user)
   await screen.findByText(/Matchday 2/)
-  // a post-match press conference may appear; skip it if so
-  const skip = screen.queryByRole('button', { name: 'Skip press conference' })
-  if (skip) await user.click(skip)
   const inboxBtn = screen.getAllByRole('button', { name: /Inbox/ })[0]
   expect(inboxBtn.textContent).toMatch(/\d/)
   expect(screen.getByRole('region', { name: 'Latest news' })).toBeInTheDocument()
+})
+
+describe('press and sacking flow', () => {
+  test('a pending pre-match press is shown first; answering opens the match', async () => {
+    const { saveGame } = await import('../save/storage')
+    const { newGame } = await import('../game/generate')
+    const { userFixture } = await import('../game/season')
+    const s = newGame(21, 'semenyih')
+    await saveGame(3, { ...s, press: { kind: 'pre', fixtureId: userFixture(s)!.id, questions: [{ key: 'press.q.pre.generic', params: { oppId: 'jugra', v: 0 } }] } })
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: /Slot 3/ }))
+    expect(await screen.findByRole('heading', { name: /Press conference/ })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Confident/ }))
+    expect(await screen.findByRole('button', { name: 'Skip to end' })).toBeInTheDocument()
+  })
+
+  test('a sacked manager sees offers; taking one shows the new club', async () => {
+    const { saveGame } = await import('../save/storage')
+    const { newGame } = await import('../game/generate')
+    const s = newGame(22, 'klang')
+    await saveGame(3, { ...s, career: { kind: 'sacked', offers: ['ijok', 'jugra'] } })
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: /Slot 3/ }))
+    await user.click(await screen.findByRole('button', { name: /Ijok/ }))
+    const header = await screen.findByRole('banner')
+    expect(within(header).getByText('Ijok')).toBeInTheDocument()
+  })
 })

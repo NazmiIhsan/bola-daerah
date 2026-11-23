@@ -238,3 +238,13 @@ tr.me td { font-weight: 700; }
 .kv dt { color: var(--muted); } .kv dd { margin: 0; font-weight: 600; }
 .big-money { font-size: 1.3rem; }
 @media (max-width: 640px) { .nav { overflow-x: auto; justify-content: flex-start; } .nav button { flex: 0 0 auto; min-width: 56px; } }
+
+/* Press & sacked */
+.press, .sacked { max-width: 720px; margin: 0 auto; display: grid; gap: .8rem; }
+.press-q { margin: 0; padding: 1rem 1.2rem; background: var(--surface-2); border-left: 4px solid var(--accent); border-radius: 8px; font-size: 1.1rem; }
+.press-answers { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .6rem; }
+.press-a { display: grid; gap: .3rem; text-align: left; padding: .8rem; background: var(--surface); }
+.press-a.confident { border-top: 3px solid var(--good); }
+.press-a.humble { border-top: 3px solid var(--muted); }
+.press-a.combative { border-top: 3px solid var(--bad); }
+button.link { background: none; border: 0; color: var(--muted); text-decoration: underline; justify-self: start; padding: 0; }
