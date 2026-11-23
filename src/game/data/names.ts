@@ -1,0 +1,8 @@
+export const MALAY_FIRST = ['Ahmad', 'Muhammad', 'Mohd', 'Amirul', 'Hafiz', 'Faiz', 'Syafiq', 'Aiman', 'Haziq', 'Irfan', 'Danial', 'Hakimi', 'Shahrul', 'Azri', 'Firdaus', 'Khairul', 'Nazmi', 'Zulkifli', 'Akmal', 'Fakhrul', 'Afiq', 'Ikmal', 'Luqman', 'Najmi', 'Rafiq', 'Safwan', 'Syahmi', 'Taufiq', 'Wan', 'Zikri']
+export const MALAY_LAST = ['Abdullah', 'Ismail', 'Rahman', 'Hassan', 'Yusof', 'Ibrahim', 'Aziz', 'Hamid', 'Kassim', 'Osman', 'Salleh', 'Jamil', 'Razak', 'Zainal', 'Hashim', 'Mansor', 'Rosli', 'Ghani', 'Halim', 'Latif', 'Nordin', 'Shukri', 'Sulaiman', 'Talib', 'Yahya']
+export const CHINESE_FIRST = ['Wei Jie', 'Jun Hao', 'Kah Wai', 'Chee Keong', 'Zhi Hao', 'Yong Sheng', 'Ming Hui', 'Kok Leong', 'Jia Wei', 'Boon Hock', 'Hong Wei', 'Shi Kai']
+export const CHINESE_LAST = ['Tan', 'Lim', 'Lee', 'Wong', 'Ng', 'Chong', 'Chan', 'Teo', 'Ong', 'Goh', 'Yap', 'Liew', 'Khoo', 'Low']
+export const INDIAN_FIRST = ['Arvind', 'Darren', 'Kumar', 'Naveen', 'Prakash', 'Ravi', 'Saravanan', 'Thiban', 'Vijay', 'Kogileswaran', 'Ganesh', 'Harish', 'Mugen', 'Shankar']
+export const INDIAN_LAST = ['Raj', 'Subramaniam', 'Krishnan', 'Muthu', 'Pillai', 'Nair', 'Ramasamy', 'Selvam', 'Arumugam', 'Govindasamy', 'Maniam', 'Velu']
+export const FOREIGN_FIRST = ['Lucas', 'Gabriel', 'Diego', 'Kenji', 'Ryo', 'Jonathan', 'Moussa', 'Ivan', 'Rafael', 'Tomas']
+export const FOREIGN_LAST = ['Silva', 'Costa', 'Tanaka', 'Sato', 'Diallo', 'Petrovic', 'Fernandes', 'Novak', 'Mendes', 'Okafor']
