@@ -57,10 +57,11 @@ describe('news templates', async () => {
   })
 })
 
-test('every transfer news key the game emits has templates', async () => {
+test('every transfer, youth and underdog news key the game emits has templates', async () => {
   const { NEWS } = await import('./news')
   const keys = ['signed', 'signedFree', 'sold', 'renewed', 'offer', 'deal', 'dealFree', 'rumour', 'windowOpen', 'deadline', 'closed', 'expiring', 'left']
   for (const k of keys) expect(Object.keys(NEWS.en)).toContain(`news.transfer.${k}`)
+  for (const k of ['youth.intake', 'youth.wonderkid', 'youth.debut', 'youth.breakthrough', 'season.underdog', 'season.darkHorse']) expect(Object.keys(NEWS.en)).toContain(`news.${k}`)
 })
 
 describe('press templates', async () => {

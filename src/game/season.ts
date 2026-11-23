@@ -11,7 +11,7 @@ import { applyReaction, expectationFor, resultReaction, seasonEndReaction, shoul
 import { addNews, matchdayNews, seasonEndNews, seasonStartNews } from './news'
 import { maybePress } from './press'
 import { developWeek } from './development'
-import { aiIntake, youthIntake } from './youth'
+import { aiIntake, intakeNews, youthIntake, youthWeek } from './youth'
 import { darkHorseNews, moveReputations, rollForm, underdogNews } from './momentum'
 import { isRivalry } from './rivals'
 import { sack, takeJob } from './career'
@@ -19,6 +19,7 @@ import { departureNews, expireContracts, refillSquads, resetMarket, transferWeek
 
 export const ROUNDS_PER_SEASON = 18
 export const RETIRE_AFTER_AGE = 35
+const FOCUS_EDGE = 1.02
 
 export function userFixture(state: GameState): Fixture | undefined {
   return state.fixtures.find(
@@ -108,7 +109,7 @@ function simulateRound(state: GameState, userMatch?: MatchState): GameState {
       ...p,
       injuredWeeks: Math.max(0, p.injuredWeeks - 1),
       suspendedMatches: playing.has(p.clubId) ? Math.max(0, p.suspendedMatches - 1) : p.suspendedMatches,
-      fitness: Math.min(100, p.fitness + 20),
+      fitness: Math.min(100, p.fitness + (p.clubId === state.userClubId && state.training === 'fitness' ? 25 : 20)),
     }
   }
 
@@ -187,9 +188,10 @@ export function userHomeBoost(state: GameState): number {
   return 1 + (state.fans.mood - 50) / 1000
 }
 
-/** A club's edge in matches this season. */
+/** A club's edge in matches: the user's training focus, or an AI club's season form. */
 function clubSharpness(state: GameState, clubId: string): { attack: number; defence: number } {
-  const form = clubId === state.userClubId ? 1 : state.form[clubId] ?? 1
+  if (clubId === state.userClubId) return { attack: state.training === 'attack' ? FOCUS_EDGE : 1, defence: state.training === 'defence' ? FOCUS_EDGE : 1 }
+  const form = state.form[clubId] ?? 1
   return { attack: form, defence: form }
 }
 
@@ -251,6 +253,7 @@ export function playMatchday(state: GameState, userMatch?: MatchState): GameStat
   s = addNews({ ...s, matchday: state.matchday }, matchdayNews(before, s), rng)
   s = { ...s, matchday: state.matchday + 1 }
   if (fixture?.result) s = { ...s, press: maybePress(s, 'post', fixture, rng) }
+  s = youthWeek(before, s, rng)
   s = developWeek(before, s, rng)
   s = transferWeek(s, rng)
   // In-season rule only; the season-end verdict is endSeason's job.
@@ -274,7 +277,7 @@ export function endSeason(state: GameState): GameState {
   if (next.career.kind === 'employed') {
     next = { ...next, board: { ...expectationFor(next), confidence: next.board.confidence } }
     if (sacked) next = sack(next, rng2)
-    else next = addNews(next, [...departureNews(next.userClubId, rolled.left), ...seasonStartNews(next), ...darkHorseNews(next, rng2)], rng2)
+    else next = addNews(next, [...departureNews(next.userClubId, rolled.left), ...intakeNews(next), ...seasonStartNews(next), ...darkHorseNews(next, rng2)], rng2)
   }
   next = transferWeek(next, rng2)
   return { ...next, rngState: rng2.state() }

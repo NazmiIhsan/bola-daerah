@@ -20,11 +20,11 @@ export function makeOffers(state: GameState, rng: Rng): string[] {
   return offers
 }
 
-/** Forget the user's open negotiations and transfer list. */
+/** Forget the user's open negotiations, transfer list, academy decisions and training plan. */
 function closeBusiness(state: GameState): GameState {
   const players = { ...state.players }
   for (const p of Object.values(players)) if (p.listed) players[p.id] = { ...p, listed: false }
-  return { ...state, players, transfers: { ...state.transfers, offers: [], agreed: {}, blocked: [] } }
+  return { ...state, players, transfers: { ...state.transfers, offers: [], agreed: {}, blocked: [] }, youth: { intake: [] }, training: 'balanced' }
 }
 
 export function sack(state: GameState, rng: Rng): GameState {
