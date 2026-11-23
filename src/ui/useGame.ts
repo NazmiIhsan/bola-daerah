@@ -5,6 +5,8 @@ import { markRead as markNewsRead } from '../game/news'
 import { answerPress as answerPressFn, skipPress as skipPressFn } from '../game/press'
 import { createRng, type Rng } from '../game/rng'
 import { offerTerms, placeBid, renewContract, respondToOffer, toggleListed, type Act } from '../game/transfers'
+import { releaseYouth, setTraining, signYouth } from '../game/youth'
+import type { YouthActions } from './screens/YouthScreen'
 import type { TransferActions } from './components/PlayerDialog'
 import type { Answer } from '../game/types'
 import type { MatchState } from '../game/match/types'
@@ -97,6 +99,17 @@ export function useGame() {
     }
   }, [state, setState])
 
+  const youth = useMemo((): YouthActions => ({
+    train: (focus) => { if (state) setState(setTraining(state, focus)) },
+    sign: (id) => {
+      const rng = createRng(state!.rngState)
+      const r = signYouth(state!, id, rng)
+      if (r.state !== state) setState({ ...r.state, rngState: rng.state() })
+      return r.outcome
+    },
+    release: (id) => { if (state) setState(releaseYouth(state, id)) },
+  }), [state, setState])
+
   const loadSlot = useCallback(async (n: number) => {
     const s = await loadGame(n)
     if (s) { setSlot(n); setSummary(null); setStateRaw(s) }
@@ -117,7 +130,7 @@ export function useGame() {
     await quit()
   }, [slot, storageOk, quit])
 
-  return { state, setState, slot, storageOk, saves, summary, clearSummary: () => setSummary(null), startNew, continueDay, setTactics, markRead, beginMatch, answerPress, skipPress, takeJob, transfers, loadSlot, openImported, quit, removeSave }
+  return { state, setState, slot, storageOk, saves, summary, clearSummary: () => setSummary(null), startNew, continueDay, setTactics, markRead, beginMatch, answerPress, skipPress, takeJob, transfers, youth, loadSlot, openImported, quit, removeSave }
 }
 
 export type GameApi = ReturnType<typeof useGame>

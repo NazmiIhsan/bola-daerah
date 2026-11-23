@@ -17,20 +17,23 @@ import { PressScreen } from './screens/PressScreen'
 import { TransfersScreen } from './screens/TransfersScreen'
 import { SackedScreen } from './screens/SackedScreen'
 import { unreadCount } from '../game/news'
+import { Icon, type IconName } from './components/Icon'
+import { YouthScreen } from './screens/YouthScreen'
 import { Kit, ClubLabel } from './components/bits'
 import { isSeasonOver } from '../game/season'
 
-type Tab = 'home' | 'inbox' | 'club' | 'squad' | 'transfers' | 'tactics' | 'table' | 'fixtures' | 'settings'
-const TABS: Array<{ id: Tab; icon: string }> = [
-  { id: 'home', icon: '🏠' },
-  { id: 'inbox', icon: '📰' },
-  { id: 'club', icon: '🏟️' },
-  { id: 'squad', icon: '👥' },
-  { id: 'transfers', icon: '🔁' },
-  { id: 'tactics', icon: '📋' },
-  { id: 'table', icon: '📊' },
-  { id: 'fixtures', icon: '📅' },
-  { id: 'settings', icon: '⚙️' },
+type Tab = 'home' | 'inbox' | 'club' | 'squad' | 'transfers' | 'youth' | 'tactics' | 'table' | 'fixtures' | 'settings'
+const TABS: Array<{ id: Tab; icon: IconName }> = [
+  { id: 'home', icon: 'home' },
+  { id: 'inbox', icon: 'news' },
+  { id: 'club', icon: 'stadium' },
+  { id: 'squad', icon: 'squad' },
+  { id: 'transfers', icon: 'transfers' },
+  { id: 'youth', icon: 'youth' },
+  { id: 'tactics', icon: 'tactics' },
+  { id: 'table', icon: 'table' },
+  { id: 'fixtures', icon: 'fixtures' },
+  { id: 'settings', icon: 'settings' },
 ]
 
 function SeasonSummaryModal({ game }: { game: GameApi }) {
@@ -42,8 +45,8 @@ function SeasonSummaryModal({ game }: { game: GameApi }) {
       <div className="modal">
         <h2>{t('season.summary', { season: sum.season })}</h2>
         <p><strong>{t('season.champions')}:</strong> {t('common.division', { n: 1 })} <ClubLabel state={s} id={sum.champions[0]} /> · {t('common.division', { n: 2 })} <ClubLabel state={s} id={sum.champions[1]} /></p>
-        <p><strong>⬆ {t('season.promoted')}:</strong> {sum.promoted.map((id) => <ClubLabel key={id} state={s} id={id} />)}</p>
-        <p><strong>⬇ {t('season.relegated')}:</strong> {sum.relegated.map((id) => <ClubLabel key={id} state={s} id={id} />)}</p>
+        <p><strong><Icon name="up" size={16} /> {t('season.promoted')}:</strong> {sum.promoted.map((id) => <ClubLabel key={id} state={s} id={id} />)}</p>
+        <p><strong><Icon name="down" size={16} /> {t('season.relegated')}:</strong> {sum.relegated.map((id) => <ClubLabel key={id} state={s} id={id} />)}</p>
         <button className="primary" onClick={game.clearSummary}>{t('common.continue')}</button>
       </div>
     </div>
@@ -92,9 +95,10 @@ function GameShell({ game }: { game: GameApi }) {
       <nav className="nav" aria-label="Main">
         {TABS.map((x) => (
           <button key={x.id} className={tab === x.id ? 'on' : ''} aria-current={tab === x.id ? 'page' : undefined} onClick={() => setTab(x.id)}>
-            <span aria-hidden className="icon">{x.icon}</span>
+            <Icon name={x.icon} />
             <span className="label">{t(`nav.${x.id}`)}</span>
             {x.id === 'transfers' && s.transfers.offers.length > 0 && <span className="badge">{s.transfers.offers.length}</span>}
+            {x.id === 'youth' && s.youth.intake.length > 0 && <span className="badge">{s.youth.intake.length}</span>}
             {x.id === 'inbox' && unreadCount(s) > 0 && <span className="badge" aria-label={`${unreadCount(s)} unread`}>{unreadCount(s)}</span>}
           </button>
         ))}
@@ -105,6 +109,7 @@ function GameShell({ game }: { game: GameApi }) {
         {tab === 'club' && <ClubScreen state={s} />}
         {tab === 'squad' && <SquadScreen state={s} actions={game.transfers} />}
         {tab === 'transfers' && <TransfersScreen state={s} actions={game.transfers} />}
+        {tab === 'youth' && <YouthScreen state={s} actions={game.youth} />}
         {tab === 'tactics' && <TacticsScreen state={s} onChange={game.setTactics} />}
         {tab === 'table' && <TableScreen state={s} />}
         {tab === 'fixtures' && <FixturesScreen state={s} />}

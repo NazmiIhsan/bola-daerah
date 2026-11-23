@@ -4,6 +4,7 @@ import { formatRM } from '../../game/finance'
 import { overall } from '../../game/generate'
 import { maxYears, playerValue, transferWindow } from '../../game/market'
 import { fullName, type BidOutcome, type OfferOutcome, type TermsOutcome } from '../../game/transfers'
+import { ScoutStars } from './bits'
 import { FREE_AGENT, type AttrKey, type GameState, type Player } from '../../game/types'
 
 export interface TransferActions {
@@ -110,6 +111,7 @@ export function PlayerDialog({ state, playerId, actions, onClose }: { state: Gam
         <ul className="attrs">
           {ATTRS.map((k) => <li key={k}><span>{t(`attr.${k}`)}</span><strong>{p.attrs[k]}</strong></li>)}
         </ul>
+        <ScoutStars p={p} />
         {message && <p role="status" className={`deal-msg ${message.tone}`}>{message.text}</p>}
         {!done && !mine && !isFree && agreed === undefined && (
           <form onSubmit={sendBid} noValidate className="deal">

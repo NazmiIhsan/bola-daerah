@@ -159,3 +159,14 @@ test('Malay labels', () => {
   expect(screen.getByText(/Jendela pramusim dibuka/)).toBeInTheDocument()
   expect(screen.getByLabelText('Pemain bebas sahaja')).toBeInTheDocument()
 })
+
+test('players who would refuse to join are hidden until asked for', async () => {
+  const jugra: GameState = { ...base, userClubId: 'jugra' }
+  const star = squad(base, 'petaling')[3]
+  const user = show(jugra)
+  await user.type(screen.getByLabelText('Search by name'), name(star))
+  const hidden = () => rows().some((r) => r.textContent!.includes('Petaling'))
+  expect(hidden()).toBe(false)
+  await user.click(screen.getByLabelText('Only players who would join'))
+  expect(hidden()).toBe(true)
+})

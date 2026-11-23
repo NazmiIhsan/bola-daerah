@@ -1,8 +1,9 @@
 import { useT } from '../LanguageContext'
 import { formatRM, wageBill } from '../../game/finance'
+import { Icon, type IconName } from '../components/Icon'
 import type { GameState } from '../../game/types'
 
-const face = (m: number) => (m < 25 ? '😡' : m < 40 ? '😟' : m < 75 ? '🙂' : '🤩')
+const face = (m: number): IconName => (m < 25 ? 'angry' : m < 40 ? 'worried' : m < 75 ? 'happy' : 'delighted')
 const money = (n: number) => <span className={n < 0 ? 'neg' : ''}>{formatRM(n)}</span>
 
 function Meter({ label, value, danger }: { label: string; value: number; danger?: boolean }) {
@@ -27,7 +28,7 @@ export function ClubScreen({ state }: { state: GameState }) {
     <div className="club-screen">
       <section className="card">
         <h2>{t('club.fans')}</h2>
-        <div className="row"><span className="face" aria-hidden>{face(state.fans.mood)}</span><Meter label={t('dashboard.fans')} value={state.fans.mood} /><strong>{state.fans.mood}</strong></div>
+        <div className="row"><span className={`face ${face(state.fans.mood)}`}><Icon name={face(state.fans.mood)} size={36} /></span><Meter label={t('dashboard.fans')} value={state.fans.mood} /><strong>{state.fans.mood}</strong></div>
         {state.fans.log.length === 0 ? <p className="muted small">{t('club.noFanNews')}</p> : (
           <ul className="reasons">
             {state.fans.log.slice(0, 6).map((e, i) => (

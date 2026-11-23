@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Icon } from '../components/Icon'
 import { useT, LanguageToggle } from '../LanguageContext'
 import { importSave, SLOTS } from '../../save/storage'
 import type { GameApi } from '../useGame'
@@ -40,7 +41,7 @@ export function StartScreen({ game, onNew }: { game: GameApi; onNew(): void }) {
     <main className="start">
       <div className="start-card">
         <div className="start-top"><LanguageToggle /></div>
-        <div className="crest" aria-hidden>⚽</div>
+        <div className="crest"><Icon name="ball" size={56} /></div>
         <h1>{t('app.title')}</h1>
         <p className="muted">{t('app.tagline')}</p>
         {!game.storageOk && <p className="banner warn">{t('storage.unavailable')}</p>}

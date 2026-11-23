@@ -179,3 +179,12 @@ test('transfers tab: signing a free agent puts them in the squad and the save', 
     expect(Object.values(s.players).some((p) => p.clubId === 'kapar' && `${p.firstName} ${p.lastName}` === player)).toBe(true)
   })
 })
+
+test('youth tab: promoting a candidate moves them into the squad', async () => {
+  const user = await startKapar()
+  await user.click(screen.getByRole('button', { name: /Youth/ }))
+  const first = screen.getAllByRole('button', { name: 'Promote' })
+  await user.click(first[0])
+  expect(screen.getByRole('status')).toHaveTextContent('joins the squad')
+  expect(screen.getAllByRole('button', { name: 'Promote' })).toHaveLength(first.length - 1)
+})

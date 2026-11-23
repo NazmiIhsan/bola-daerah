@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Icon } from '../components/Icon'
 import { useT } from '../LanguageContext'
 import { pressText } from '../../i18n'
 import type { Answer, GameState, PressConference } from '../../game/types'
@@ -17,7 +18,7 @@ export function PressScreen({ press, state, onSubmit, onSkip }: { press: PressCo
   }
   return (
     <div className="press card">
-      <h2>🎤 {t('press.title')}</h2>
+      <h2><Icon name="mic" /> {t('press.title')}</h2>
       <p className="muted small">{t('press.question', { n: i + 1, total: press.questions.length })}</p>
       <blockquote className="press-q">{pressText(lang, q, (id) => state.clubs[id]?.name ?? id)}</blockquote>
       <div className="press-answers">

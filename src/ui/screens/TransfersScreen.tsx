@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useT } from '../LanguageContext'
 import { formatRM, wageBill } from '../../game/finance'
 import { overall } from '../../game/generate'
-import { playerValue, transferWindow } from '../../game/market'
+import { playerValue, transferWindow, willJoin } from '../../game/market'
 import { fullName } from '../../game/transfers'
 import { FREE_AGENT, type GameState, type IncomingOffer, type Position } from '../../game/types'
 import { PlayerDialog, type TransferActions } from '../components/PlayerDialog'
@@ -22,17 +22,18 @@ function Market({ state, onOpen }: { state: GameState; onOpen(id: string): void 
   const [maxAge, setMaxAge] = useState('')
   const [maxValue, setMaxValue] = useState('')
   const [freeOnly, setFreeOnly] = useState(false)
+  const [willingOnly, setWillingOnly] = useState(true)
   const [sort, setSort] = useState<Sort>('ovr')
 
   const all = useMemo(() => Object.values(state.players)
     .filter((p) => p.clubId !== state.userClubId)
-    .map((p) => ({ p, name: fullName(p), ovr: overall(p), value: playerValue(p, state.season) })), [state.players, state.userClubId, state.season])
+    .map((p) => ({ p, name: fullName(p), ovr: overall(p), value: playerValue(p, state.season), willing: willJoin(state, p.id, state.userClubId) })), [state])
 
   const q = search.trim().toLowerCase()
   const found = all
     .filter((x) => (!q || x.name.toLowerCase().includes(q)) && (!pos || x.p.position === pos) &&
       (maxAge === '' || x.p.age <= Number(maxAge)) && (maxValue === '' || x.value <= Number(maxValue)) &&
-      (!freeOnly || x.p.clubId === FREE_AGENT))
+      (!willingOnly || x.willing) && (!freeOnly || x.p.clubId === FREE_AGENT))
     .sort((a, b) => (sort === 'ovr' ? b.ovr - a.ovr : sort === 'value' ? b.value - a.value : a.p.age - b.p.age) || a.name.localeCompare(b.name))
 
   return (
@@ -52,6 +53,7 @@ function Market({ state, onOpen }: { state: GameState; onOpen(id: string): void 
           {POSITIONS.map((x) => <button key={x} className={pos === x ? 'on' : ''} aria-pressed={pos === x} onClick={() => setPos(pos === x ? null : x)}>{t(`pos.${x}`)}</button>)}
         </div>
         <label className="check"><input type="checkbox" checked={freeOnly} onChange={(e) => setFreeOnly(e.target.checked)} /> {t('transfers.freeOnly')}</label>
+        <label className="check"><input type="checkbox" checked={willingOnly} onChange={(e) => setWillingOnly(e.target.checked)} /> {t('transfers.willingOnly')}</label>
       </div>
       <p className="muted small">{t('transfers.showing', { n: Math.min(ROWS, found.length), total: found.length })}</p>
       {found.length === 0 ? <p>{t('transfers.none')}</p> : (

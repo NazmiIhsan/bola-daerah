@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Icon } from '../components/Icon'
 import { useT } from '../LanguageContext'
 import { CLUBS } from '../../game/data/clubs'
 import { SLOTS } from '../../save/storage'
@@ -17,7 +18,7 @@ export function NewGameScreen({ game, onBack }: { game: GameApi; onBack(): void 
   return (
     <main className="newgame">
       <div className="row between">
-        <button onClick={onBack}>← {t('common.back')}</button>
+        <button onClick={onBack}><Icon name="back" size={16} /> {t('common.back')}</button>
         <h1>{t('newgame.title')}</h1>
         <span />
       </div>

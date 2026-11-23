@@ -68,3 +68,11 @@ test('listed players show a tag and can be taken off the list', async () => {
   await user.click(screen.getByRole('button', { name: `View ${name}` }))
   expect(screen.getByRole('button', { name: 'Take off transfer list' })).toBeInTheDocument()
 })
+
+test('shows progress since the season began and the scout’s view in the dialog', async () => {
+  const { overall } = await import('../../game/generate')
+  const { user } = show(patch({ ovrStart: overall(first) - 1 }))
+  expect(within(row()).getByText('+1.0')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: `View ${name}` }))
+  expect(screen.getByLabelText(/Potential: .* to .* stars/)).toBeInTheDocument()
+})

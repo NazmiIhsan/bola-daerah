@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useT } from '../LanguageContext'
+import { Icon, type IconName } from '../components/Icon'
 import { newsText } from '../../i18n'
 import type { GameState, NewsKind } from '../../game/types'
 
-const FILTERS: Array<NewsKind | 'all'> = ['all', 'match', 'fans', 'board', 'press', 'league', 'transfer', 'finance']
-const ICON: Record<NewsKind, string> = { match: '⚽', league: '🏆', fans: '📣', board: '🏛️', press: '🎤', finance: '💰', career: '💼', transfer: '🔁', youth: '' }
+const FILTERS: Array<NewsKind | 'all'> = ['all', 'match', 'fans', 'board', 'press', 'league', 'transfer', 'youth', 'finance']
+const ICON: Record<NewsKind, IconName> = { match: 'ball', league: 'trophy', fans: 'megaphone', board: 'board', press: 'mic', finance: 'money', career: 'briefcase', transfer: 'transfers', youth: 'youth' }
 
 export function InboxScreen({ state, onRead }: { state: GameState; onRead(id: string): void }) {
   const { t, lang } = useT()
@@ -30,7 +31,7 @@ export function InboxScreen({ state, onRead }: { state: GameState; onRead(id: st
             return (
               <li key={n.id} className={`${n.read ? '' : 'unread'} ${n.important ? 'important' : ''}`}>
                 <button className="news-item" aria-expanded={expanded} onClick={() => { setOpen(expanded ? null : n.id); if (!n.read) onRead(n.id) }}>
-                  <span className="news-icon" aria-hidden>{ICON[n.kind]}</span>
+                  <span className="news-icon"><Icon name={ICON[n.kind]} /></span>
                   <span className="news-main">
                     <span className="news-headline">{headline}</span>
                     <span className="muted small">{t('common.season', { season: n.season })} · {t('common.matchday', { n: n.matchday })}</span>
