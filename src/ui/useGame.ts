@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { newGame } from '../game/generate'
-import { endSeason, isSeasonOver, playMatchday, preMatch, seasonSummary, type SeasonSummary } from '../game/season'
+import { acceptJob, endSeason, isSeasonOver, playMatchday, preMatch, seasonSummary, type SeasonSummary } from '../game/season'
 import { markRead as markNewsRead } from '../game/news'
 import { answerPress as answerPressFn, skipPress as skipPressFn } from '../game/press'
-import { takeJob as takeJobFn } from '../game/career'
 import { createRng } from '../game/rng'
 import type { Answer } from '../game/types'
 import type { MatchState } from '../game/match/types'
@@ -77,7 +76,7 @@ export function useGame() {
 
   const answerPress = useCallback((answers: Answer[]) => withRng((s, rng) => answerPressFn(s, answers, rng)), [withRng])
   const skipPress = useCallback(() => withRng((s, rng) => skipPressFn(s, rng)), [withRng])
-  const takeJob = useCallback((clubId: string) => { if (state) setState(takeJobFn(state, clubId)) }, [state, setState])
+  const takeJob = useCallback((clubId: string) => { if (state) setState(acceptJob(state, clubId)) }, [state, setState])
 
   const loadSlot = useCallback(async (n: number) => {
     const s = await loadGame(n)

@@ -66,3 +66,28 @@ test('three seasons in deep debt: numbers stay finite and the game keeps going',
   }
   expect(s.season).toBe(2030)
 })
+
+test('final-round results use the in-season sacking rule (season-end verdict comes later)', () => {
+  let s = newGame(2, 'kapar')
+  while (s.matchday < 18) s = playMatchday(s)
+  s = { ...s, board: { ...s.board, confidence: 24 }, fans: { ...s.fans, mood: 60 }, finance: { ...s.finance, balance: 1_000_000 } }
+  s = playMatchday(s)
+  expect(s.matchday).toBe(19)
+  expect(s.career.kind).toBe('employed')
+})
+
+test('a job taken after a season-end sacking does not inherit the old season', async () => {
+  const { acceptJob } = await import('./season')
+  let s = newGame(2, 'kapar')
+  while (s.matchday < 19) s = playMatchday(s)
+  s = sack({ ...s, press: null }, createRng(9))
+  if (s.career.kind !== 'sacked') throw new Error('expected sacked')
+  const offer = s.career.offers[0]
+  const after = acceptJob(s, offer)
+  expect(after.userClubId).toBe(offer)
+  expect(after.season).toBe(2028)
+  expect(after.matchday).toBe(1)
+  expect(after.board.confidence).toBe(60)
+  expect(after.fans.mood).toBe(60)
+  expect(after.finance.history).toEqual([])
+})

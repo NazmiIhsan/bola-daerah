@@ -11,7 +11,7 @@ import { applyReaction, expectationFor, resultReaction, seasonEndReaction, shoul
 import { addNews, matchdayNews, seasonEndNews, seasonStartNews } from './news'
 import { maybePress } from './press'
 import { isRivalry } from './rivals'
-import { sack } from './career'
+import { sack, takeJob } from './career'
 
 export const ROUNDS_PER_SEASON = 18
 export const RETIRE_AFTER_AGE = 35
@@ -235,7 +235,8 @@ export function playMatchday(state: GameState, userMatch?: MatchState): GameStat
   s = addNews({ ...s, matchday: state.matchday }, matchdayNews(before, s), rng)
   s = { ...s, matchday: state.matchday + 1 }
   if (fixture?.result) s = { ...s, press: maybePress(s, 'post', fixture, rng) }
-  if (shouldSack(s)) s = sack(s, rng)
+  // In-season rule only; the season-end verdict is endSeason's job.
+  if (shouldSack({ ...s, matchday: Math.min(s.matchday, ROUNDS_PER_SEASON) })) s = sack(s, rng)
   return { ...s, rngState: rng.state() }
 }
 
@@ -257,4 +258,9 @@ export function endSeason(state: GameState): GameState {
     else next = addNews(next, seasonStartNews(next), rng2)
   }
   return { ...next, rngState: rng2.state() }
+}
+
+/** Take a job offer; if the old season has ended, roll it over first so the new club starts fresh. */
+export function acceptJob(state: GameState, clubId: string): GameState {
+  return takeJob(isSeasonOver(state) ? endSeason(state) : state, clubId)
 }
