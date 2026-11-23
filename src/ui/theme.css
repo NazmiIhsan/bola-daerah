@@ -224,3 +224,17 @@ tr.me td { font-weight: 700; }
 .headlines li.important { color: var(--bad); font-weight: 600; }
 .mood { display: grid; gap: .5rem; }
 .meter.danger > span { background: var(--bad); }
+
+/* Club screen */
+.club-screen { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; align-items: start; }
+.club-screen > :last-child { grid-column: 1 / -1; }
+.face { font-size: 2rem; }
+.meter.big { height: 12px; flex: 1; min-width: 120px; }
+.reasons { list-style: none; margin: .6rem 0 0; padding: 0; display: grid; gap: .3rem; }
+.reasons li { display: flex; gap: .6rem; }
+.delta { min-width: 2.4em; font-weight: 700; font-variant-numeric: tabular-nums; }
+.delta.pos { color: var(--good); } .delta.neg, .neg { color: var(--bad); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: .3rem 1rem; margin: 0 0 .8rem; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; font-weight: 600; }
+.big-money { font-size: 1.3rem; }
+@media (max-width: 640px) { .nav { overflow-x: auto; justify-content: flex-start; } .nav button { flex: 0 0 auto; min-width: 56px; } }

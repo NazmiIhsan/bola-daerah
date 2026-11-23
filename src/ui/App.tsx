@@ -12,14 +12,16 @@ import { SettingsScreen } from './screens/SettingsScreen'
 import { TacticsScreen } from './screens/TacticsScreen'
 import { MatchScreen } from './screens/MatchScreen'
 import { InboxScreen } from './screens/InboxScreen'
+import { ClubScreen } from './screens/ClubScreen'
 import { unreadCount } from '../game/news'
 import { Kit, ClubLabel } from './components/bits'
 import { isSeasonOver } from '../game/season'
 
-type Tab = 'home' | 'inbox' | 'squad' | 'tactics' | 'table' | 'fixtures' | 'settings'
+type Tab = 'home' | 'inbox' | 'club' | 'squad' | 'tactics' | 'table' | 'fixtures' | 'settings'
 const TABS: Array<{ id: Tab; icon: string }> = [
   { id: 'home', icon: '🏠' },
   { id: 'inbox', icon: '📰' },
+  { id: 'club', icon: '🏟️' },
   { id: 'squad', icon: '👥' },
   { id: 'tactics', icon: '📋' },
   { id: 'table', icon: '📊' },
@@ -81,6 +83,7 @@ function GameShell({ game }: { game: GameApi }) {
       <main className="content">
         {tab === 'home' && <Dashboard game={game} onPlayMatch={() => setInMatch(true)} />}
         {tab === 'inbox' && <InboxScreen state={s} onRead={game.markRead} />}
+        {tab === 'club' && <ClubScreen state={s} />}
         {tab === 'squad' && <SquadScreen state={s} />}
         {tab === 'tactics' && <TacticsScreen state={s} onChange={game.setTactics} />}
         {tab === 'table' && <TableScreen state={s} />}
