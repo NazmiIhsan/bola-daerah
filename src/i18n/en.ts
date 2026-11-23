@@ -21,6 +21,7 @@ export const en = {
   'start.slot': 'Slot {n}',
   'start.empty': 'Empty',
   'start.slotInfo': '{club} · {season} · matchday {matchday}',
+  'start.overwrite': 'All save slots are full. Overwrite slot {n} with the imported game?',
   'start.importError': 'That file is not a valid Bola Daerah save.',
   'newgame.title': 'Choose your club',
   'newgame.reputation': 'Reputation',

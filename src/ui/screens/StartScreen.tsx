@@ -4,6 +4,15 @@ import { importSave, SLOTS } from '../../save/storage'
 import type { GameApi } from '../useGame'
 import { CLUBS } from '../../game/data/clubs'
 
+function readText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(String(r.result))
+    r.onerror = () => reject(r.error)
+    r.readAsText(file)
+  })
+}
+
 export function StartScreen({ game, onNew }: { game: GameApi; onNew(): void }) {
   const { t } = useT()
   const [error, setError] = useState('')
@@ -14,9 +23,13 @@ export function StartScreen({ game, onNew }: { game: GameApi; onNew(): void }) {
     if (!file) return
     setError('')
     try {
-      const state = importSave(await file.text())
-      const free = SLOTS.find((s) => !game.saves.some((m) => m.slot === s)) ?? 1
-      game.openImported(state, free)
+      const state = importSave(await readText(file))
+      const free = SLOTS.find((s) => !game.saves.some((m) => m.slot === s))
+      if (free === undefined && !window.confirm(t('start.overwrite', { n: 1 }))) {
+        if (fileRef.current) fileRef.current.value = ''
+        return
+      }
+      game.openImported(state, free ?? 1)
     } catch {
       setError(t('start.importError'))
     }

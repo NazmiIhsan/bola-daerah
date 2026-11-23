@@ -23,6 +23,7 @@ export const ms: Partial<Record<I18nKey, string>> = {
   'start.slot': 'Slot {n}',
   'start.empty': 'Kosong',
   'start.slotInfo': '{club} · {season} · perlawanan ke-{matchday}',
+  'start.overwrite': 'Semua slot simpanan penuh. Tulis ganti slot {n} dengan permainan yang diimport?',
   'start.importError': 'Fail itu bukan simpanan Bola Daerah yang sah.',
   'newgame.title': 'Pilih kelab anda',
   'newgame.reputation': 'Reputasi',

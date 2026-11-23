@@ -52,3 +52,23 @@ test('without indexedDB, storageAvailable is false and saveGame rejects', async 
     globalThis.indexedDB = saved
   }
 })
+
+test('importSave rejects saves that are broken inside (semantic checks)', () => {
+  const base = JSON.parse(exportSave(state))
+  const code = (obj: unknown) => {
+    try { importSave(JSON.stringify(obj)); return 'no error' } catch (e) { return (e as SaveError).code }
+  }
+  // user club not in any division
+  expect(code({ ...base, divisions: [{ id: 1, clubIds: base.divisions[0].clubIds }, { id: 2, clubIds: base.divisions[1].clubIds.filter((c: string) => c !== 'kapar') }] })).toBe('wrong_shape')
+  // wrong number of divisions
+  expect(code({ ...base, divisions: [base.divisions[0]] })).toBe('wrong_shape')
+  // missing tactics for a club
+  const { kapar: _k, ...tactics } = base.tactics
+  expect(code({ ...base, tactics })).toBe('wrong_shape')
+  // tactics without arrays
+  expect(code({ ...base, tactics: { ...base.tactics, klang: { formation: '4-4-2' } } })).toBe('wrong_shape')
+  // fixture referring to an unknown club
+  expect(code({ ...base, fixtures: [...base.fixtures, { ...base.fixtures[0], id: 'x', homeId: 'atlantis' }] })).toBe('wrong_shape')
+  // lineup referring to an unknown player
+  expect(code({ ...base, tactics: { ...base.tactics, kapar: { ...base.tactics.kapar, lineup: ['ghost'] } } })).toBe('wrong_shape')
+})

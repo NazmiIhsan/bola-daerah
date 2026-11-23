@@ -89,7 +89,23 @@ export function importSave(json: string): GameState {
   for (const [k, type] of SHAPE) if (typeof d[k] !== type || d[k] === null) throw new SaveError('wrong_shape')
   if (!Array.isArray(d.fixtures) || !Array.isArray(d.divisions)) throw new SaveError('wrong_shape')
   if (d.version !== 1) throw new SaveError('unsupported_version')
-  if (!(d.userClubId as string in (d.clubs as object))) throw new SaveError('wrong_shape')
   const { app: _app, ...state } = d
+  if (!isConsistent(state as unknown as GameState)) throw new SaveError('wrong_shape')
   return state as unknown as GameState
+}
+
+/** Semantic checks so a save that passes the shape test can't crash the game later. */
+function isConsistent(s: GameState): boolean {
+  const isArr = Array.isArray
+  if (!(s.userClubId in s.clubs)) return false
+  if (s.divisions.length !== 2 || !s.divisions.every((d) => d && isArr(d.clubIds))) return false
+  const inDivs = s.divisions.flatMap((d) => d.clubIds)
+  if (inDivs.filter((c) => c === s.userClubId).length !== 1) return false
+  for (const c of inDivs) {
+    if (!(c in s.clubs)) return false
+    const t = s.tactics[c]
+    if (!t || !isArr(t.lineup) || !isArr(t.subs)) return false
+    if (![...t.lineup, ...t.subs].every((id) => typeof id === 'string' && id in s.players)) return false
+  }
+  return s.fixtures.every((f) => f && f.homeId in s.clubs && f.awayId in s.clubs && typeof f.round === 'number')
 }
