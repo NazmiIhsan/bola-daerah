@@ -2,6 +2,7 @@ import { createRng, type Rng } from './rng'
 import { CLUBS, DIVISION_1_IDS, DIVISION_2_IDS } from './data/clubs'
 import * as N from './data/names'
 import { buildFixtures } from './schedule'
+import { pickBestLineup } from './tactics'
 import type { Division } from './types'
 import type { AttrKey, Attributes, Club, GameState, Player, Position, Tactics } from './types'
 
@@ -96,13 +97,6 @@ export function generateSquad(rng: Rng, club: Club): Player[] {
   })
 }
 
-/** Temporary pick; replaced by pickBestLineup in Task 5. */
-function simplePick(squad: Player[]): Tactics {
-  const gk = squad.find((p) => p.position === 'GK')!
-  const rest = squad.filter((p) => p.id !== gk.id)
-  return { formation: '4-4-2', style: 'balanced', lineup: [gk.id, ...rest.slice(0, 10).map((p) => p.id)], subs: rest.slice(10, 17).map((p) => p.id) }
-}
-
 export function newGame(seed: number, userClubId: string): GameState {
   const rng = createRng(seed)
   const clubs: Record<string, Club> = {}
@@ -112,7 +106,7 @@ export function newGame(seed: number, userClubId: string): GameState {
     clubs[c.id] = { ...c }
     const squad = generateSquad(rng, c)
     for (const p of squad) players[p.id] = p
-    tactics[c.id] = simplePick(squad)
+    tactics[c.id] = { formation: '4-4-2', style: 'balanced', ...pickBestLineup(squad, '4-4-2') }
   }
   const divisions: [Division, Division] = [
     { id: 1, clubIds: [...DIVISION_1_IDS] },
