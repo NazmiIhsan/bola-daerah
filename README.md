@@ -2,6 +2,8 @@
 
 A small football management game set in Selangor. Pick a district or mukim club, set your tactics, build your squad in the transfer market and the youth academy, watch your matches as 2D highlights, and climb from Division 2 to the top. Available in English and Bahasa Melayu.
 
+**Play it here: https://nazmiihsan.github.io/bola-daerah/**
+
 ## Play locally
 
 ```bash
