@@ -60,3 +60,7 @@ test('every club has valid tactics', () => {
     expect(g.players[t.lineup[0]].position).toBe('GK')
   }
 })
+
+test('newGame builds the season fixtures', () => {
+  expect(g.fixtures).toHaveLength(162)
+})
