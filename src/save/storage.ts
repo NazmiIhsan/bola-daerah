@@ -1,5 +1,7 @@
 import { createStore, del, get, set, type UseStore } from 'idb-keyval'
 import type { GameState } from '../game/types'
+import { SaveError } from './errors'
+import { migrate } from '../game/migrate'
 
 export interface SaveMeta {
   slot: number
@@ -9,12 +11,7 @@ export interface SaveMeta {
   savedAt: number
 }
 
-export class SaveError extends Error {
-  constructor(public code: 'invalid_json' | 'wrong_shape' | 'unsupported_version') {
-    super(`Save error: ${code}`)
-    this.name = 'SaveError'
-  }
-}
+export { SaveError }
 
 export const SLOTS = [1, 2, 3] as const
 interface Stored { meta: SaveMeta; state: GameState }
@@ -52,7 +49,7 @@ export async function saveGame(slot: number, state: GameState): Promise<void> {
 
 export async function loadGame(slot: number): Promise<GameState | undefined> {
   const s = await get<Stored>(key(slot), getStore())
-  return s?.state
+  return s ? migrate(s.state as unknown as Record<string, unknown>) : undefined
 }
 
 export async function listSaves(): Promise<SaveMeta[]> {
@@ -88,10 +85,11 @@ export function importSave(json: string): GameState {
   const d = data as Record<string, unknown>
   for (const [k, type] of SHAPE) if (typeof d[k] !== type || d[k] === null) throw new SaveError('wrong_shape')
   if (!Array.isArray(d.fixtures) || !Array.isArray(d.divisions)) throw new SaveError('wrong_shape')
-  if (d.version !== 1) throw new SaveError('unsupported_version')
-  const { app: _app, ...state } = d
-  if (!isConsistent(state as unknown as GameState)) throw new SaveError('wrong_shape')
-  return state as unknown as GameState
+  if (d.version !== 1 && d.version !== 2) throw new SaveError('unsupported_version')
+  const { app: _app, ...rest } = d
+  const state = migrate(rest)
+  if (!isConsistent(state)) throw new SaveError('wrong_shape')
+  return state
 }
 
 /** Semantic checks so a save that passes the shape test can't crash the game later. */

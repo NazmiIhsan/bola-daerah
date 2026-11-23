@@ -72,3 +72,8 @@ test('importSave rejects saves that are broken inside (semantic checks)', () => 
   // lineup referring to an unknown player
   expect(code({ ...base, tactics: { ...base.tactics, kapar: { ...base.tactics.kapar, lineup: ['ghost'] } } })).toBe('wrong_shape')
 })
+
+test('importSave upgrades a v1 save', async () => {
+  const { makeV1 } = await import('../game/testUtils')
+  expect(importSave(JSON.stringify(makeV1())).version).toBe(2)
+})

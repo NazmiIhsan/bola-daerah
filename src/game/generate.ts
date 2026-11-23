@@ -69,11 +69,25 @@ export function generatePlayer(rng: Rng, clubId: string, position: Position, qua
     injuredWeeks: 0,
     suspendedMatches: 0,
     yellowCards: 0,
+    wage: 0,
   }
   const growth = Math.max(0, 24 - a) * 0.6
   p.potential = clamp(Math.round(overall(p) + rng.next() * growth), Math.round(overall(p)), 20)
+  p.wage = wageFor(p, { reputation: reputationForQuality(quality) })
   return p
 }
+
+/** RM per week, rounded to RM 10. */
+export function wageFor(p: Player, club: Pick<Club, 'reputation'>): number {
+  return Math.max(10, Math.round((overall(p) ** 2 * 8 * (0.6 + club.reputation / 100)) / 10) * 10)
+}
+
+export function startingBalance(club: Pick<Club, 'reputation'>): number {
+  return club.reputation * 20000
+}
+
+/** Inverse of squadQuality: the reputation a squad of this quality implies. */
+const reputationForQuality = (q: number) => 30 + ((q - 7) * 50) / 6
 
 export function squadQuality(club: Club): number {
   return 7 + ((club.reputation - 30) * 6) / 50
@@ -113,7 +127,7 @@ export function newGame(seed: number, userClubId: string): GameState {
     { id: 2, clubIds: [...DIVISION_2_IDS] },
   ]
   return {
-    version: 1,
+    version: 2,
     seed,
     rngState: rng.state(),
     season: 2027,
@@ -124,5 +138,11 @@ export function newGame(seed: number, userClubId: string): GameState {
     divisions,
     fixtures: buildFixtures(divisions),
     tactics,
+    fans: { mood: 60, log: [] },
+    board: { expectation: 'midTable', targetPosition: 5, confidence: 60 },
+    finance: { balance: startingBalance(clubs[userClubId]), history: [] },
+    inbox: [],
+    press: null,
+    career: { kind: 'employed' },
   }
 }

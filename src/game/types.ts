@@ -22,6 +22,8 @@ export interface Player {
   injuredWeeks: number
   suspendedMatches: number
   yellowCards: number
+  /** RM per week */
+  wage: number
 }
 
 export interface Club {
@@ -64,7 +66,7 @@ export interface Division {
 }
 
 export interface GameState {
-  version: 1
+  version: 2
   seed: number
   rngState: number
   /** starts 2027 */
@@ -78,4 +80,25 @@ export interface GameState {
   fixtures: Fixture[]
   /** by clubId */
   tactics: Record<string, Tactics>
+  fans: FanState
+  board: BoardState
+  finance: Finance
+  inbox: NewsItem[]
+  press: PressConference | null
+  career: CareerStatus
 }
+
+export type Expectation = 'title' | 'promotion' | 'topHalf' | 'midTable' | 'avoidRelegation'
+export interface FanLogEntry { season: number; matchday: number; delta: number; reason: string; params?: Record<string, string | number> }
+/** mood 0..100; log newest first, max 12 */
+export interface FanState { mood: number; log: FanLogEntry[] }
+export interface BoardState { expectation: Expectation; targetPosition: number; confidence: number }
+export interface WeekLedger { season: number; matchday: number; tickets: number; sponsor: number; prize: number; wages: number; attendance?: number }
+/** history newest first, max 40 */
+export interface Finance { balance: number; history: WeekLedger[] }
+export type NewsKind = 'match' | 'league' | 'fans' | 'board' | 'press' | 'finance' | 'career'
+export interface NewsItem { id: string; season: number; matchday: number; kind: NewsKind; key: string; params: Record<string, string | number>; variant: number; read: boolean; important?: boolean }
+export type Answer = 'confident' | 'humble' | 'combative'
+export interface PressQuestion { key: string; params: Record<string, string | number> }
+export interface PressConference { kind: 'pre' | 'post'; fixtureId: string; questions: PressQuestion[] }
+export type CareerStatus = { kind: 'employed' } | { kind: 'sacked'; offers: string[] }

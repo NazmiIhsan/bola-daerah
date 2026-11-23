@@ -64,3 +64,22 @@ test('every club has valid tactics', () => {
 test('newGame builds the season fixtures', () => {
   expect(g.fixtures).toHaveLength(162)
 })
+
+test('every player has a wage, bigger clubs pay more', () => {
+  const avg = (id: string) => {
+    const s = Object.values(g.players).filter((p) => p.clubId === id)
+    return s.reduce((a, p) => a + p.wage, 0) / s.length
+  }
+  expect(Object.values(g.players).every((p) => p.wage > 0)).toBe(true)
+  expect(avg('petaling')).toBeGreaterThan(avg('jugra'))
+})
+
+test('newGame initialises v2 state: fans, board, finance, inbox, career', () => {
+  expect(g.version).toBe(2)
+  expect(g.fans).toEqual({ mood: 60, log: [] })
+  expect(g.career).toEqual({ kind: 'employed' })
+  expect(g.inbox).toEqual([])
+  expect(g.press).toBeNull()
+  expect(g.finance).toEqual({ balance: g.clubs.kapar.reputation * 20000, history: [] })
+  expect(g.board.confidence).toBe(60)
+})
