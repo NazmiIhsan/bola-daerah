@@ -37,3 +37,22 @@ test('commentary has at least 3 variants for goals', () => {
   for (let i = 0; i < 60; i++) seen.add(commentary('ms', { minute: 1, type: 'goal', side: 'home', highlight: true }, { player: 'Ali', club: 'Kapar' }, rng))
   expect(seen.size).toBeGreaterThanOrEqual(3)
 })
+
+describe('news templates', async () => {
+  const { NEWS } = await import('./news')
+  const { newsText } = await import('./index')
+  test('every news key has ≥3 variants in en and ms, same key set', () => {
+    expect(Object.keys(NEWS.ms).sort()).toEqual(Object.keys(NEWS.en).sort())
+    for (const lang of ['en', 'ms'] as const) for (const [k, v] of Object.entries(NEWS[lang])) expect({ k, n: v.length >= 3 }).toEqual({ k, n: true })
+  })
+  test('newsText resolves club ids, leaves no placeholders, and is stable per variant', () => {
+    const params = { clubId: 'kapar', oppId: 'klang', club2Id: 'jugra', score: '3–1', pos: 2, n: 1, expectation: 'x' }
+    for (const lang of ['en', 'ms'] as const) for (const key of Object.keys(NEWS.en)) {
+      const item = { id: 'a', season: 2027, matchday: 1, kind: 'match' as const, key, params, variant: 7, read: false }
+      const a = newsText(lang, item, (id) => id.toUpperCase())
+      expect(a.headline).not.toMatch(/\{\w+\}/)
+      expect(a.body ?? '').not.toMatch(/\{\w+\}/)
+      expect(newsText(lang, item, (id) => id.toUpperCase())).toEqual(a)
+    }
+  })
+})

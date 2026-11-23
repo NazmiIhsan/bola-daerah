@@ -1,8 +1,10 @@
 import { en } from './en'
 import { ms } from './ms'
 import { COMMENTARY } from './commentary'
+import { NEWS } from './news'
 import type { Rng } from '../game/rng'
 import type { MatchEvent } from '../game/match/types'
+import type { NewsItem } from '../game/types'
 
 export type Lang = 'en' | 'ms'
 type Params = Record<string, string | number>
@@ -35,4 +37,18 @@ export function commentary(
   const text = interpolate(rng.pick(variants), p)
   // Any placeholder we could not fill is replaced with a neutral word so no braces leak.
   return text.replace(/\{\w+\}/g, lang === 'ms' ? 'pemain' : 'the player')
+}
+
+/** Render a stored news item in the given language. Params ending in "Id" become club names. */
+export function newsText(lang: Lang, item: NewsItem, clubName: (id: string) => string): { headline: string; body?: string } {
+  const variants = NEWS[lang][item.key] ?? NEWS.en[item.key]
+  if (!variants) return { headline: item.key }
+  const p: Params = {}
+  for (const [k, v] of Object.entries(item.params)) {
+    if (k.endsWith('Id') && typeof v === 'string') p[k.slice(0, -2)] = clubName(v)
+    else p[k] = v
+  }
+  const [headline, body] = variants[item.variant % variants.length].split('|')
+  const fill = (x: string) => interpolate(x, p).replace(/\{\w+\}/g, '')
+  return body ? { headline: fill(headline), body: fill(body) } : { headline: fill(headline) }
 }
