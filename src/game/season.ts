@@ -1,5 +1,5 @@
 import { createRng, type Rng } from './rng'
-import { generatePlayer, squadQuality } from './generate'
+import { generatePlayer, overall, squadQuality } from './generate'
 import { simulateFull } from './match/sim'
 import type { MatchState } from './match/types'
 import { buildFixtures } from './schedule'
@@ -11,6 +11,7 @@ import { applyWeek, attendance, prizeMoney } from './finance'
 import { applyReaction, expectationFor, resultReaction, seasonEndReaction, shouldSack, userPosition, weeklyBoardCheck } from './reactions'
 import { addNews, matchdayNews, seasonEndNews, seasonStartNews } from './news'
 import { maybePress } from './press'
+import { developWeek } from './development'
 import { isRivalry } from './rivals'
 import { sack, takeJob } from './career'
 import { departureNews, expireContracts, refillSquads, resetMarket, transferWeek, trimFreeAgents } from './transferWeek'
@@ -68,6 +69,7 @@ function applyMatchEffects(players: Record<string, Player>, match: MatchState, r
   for (const id of played) {
     if (!players[id]) continue
     const p = touch(id)
+    p.apps += 1
     p.fitness = Math.max(0, p.fitness - (30 - p.attrs.stamina))
   }
 }
@@ -157,7 +159,7 @@ function rollOverSeason(ended: GameState): { state: GameState; left: Player[] } 
 
   const players: Record<string, Player> = {}
   for (const p of Object.values(state.players)) {
-    const aged = { ...p, age: p.age + 1, yellowCards: 0, suspendedMatches: 0 }
+    const aged = { ...p, age: p.age + 1, yellowCards: 0, suspendedMatches: 0, apps: 0, ovrStart: overall(p) }
     if (aged.age > RETIRE_AFTER_AGE) {
       if (p.clubId === FREE_AGENT) continue
       const club = state.clubs[p.clubId]
@@ -240,6 +242,7 @@ export function playMatchday(state: GameState, userMatch?: MatchState): GameStat
   s = addNews({ ...s, matchday: state.matchday }, matchdayNews(before, s), rng)
   s = { ...s, matchday: state.matchday + 1 }
   if (fixture?.result) s = { ...s, press: maybePress(s, 'post', fixture, rng) }
+  s = developWeek(before, s, rng)
   s = transferWeek(s, rng)
   // In-season rule only; the season-end verdict is endSeason's job.
   if (shouldSack({ ...s, matchday: Math.min(s.matchday, ROUNDS_PER_SEASON) })) s = sack(s, rng)

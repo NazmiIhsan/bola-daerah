@@ -72,9 +72,12 @@ export function generatePlayer(rng: Rng, clubId: string, position: Position, qua
     yellowCards: 0,
     wage: 0,
     contractEnd: 0,
+    apps: 0,
+    ovrStart: 0,
   }
   const growth = Math.max(0, 24 - a) * 0.6
   p.potential = clamp(Math.round(overall(p) + rng.next() * growth), Math.round(overall(p)), 20)
+  p.ovrStart = overall(p)
   p.wage = wageFor(p, { reputation: reputationForQuality(quality) })
   return p
 }
@@ -165,7 +168,7 @@ export function newGame(seed: number, userClubId: string): GameState {
   ]
   const season = 2027
   const state: GameState = {
-    version: 3,
+    version: 4,
     seed,
     rngState: rng.state(),
     season,
@@ -183,6 +186,8 @@ export function newGame(seed: number, userClubId: string): GameState {
     press: null,
     career: { kind: 'employed' },
     transfers: initialTransfers(clubs, userClubId, startingBalance(clubs[userClubId])),
+    training: 'balanced',
+    youth: { intake: [] },
   }
   return { ...state, board: expectationFor(state) }
 }

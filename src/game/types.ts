@@ -32,6 +32,14 @@ export interface Player {
   contractEnd: number
   /** on the transfer list */
   listed?: boolean
+  /** matches played this season */
+  apps: number
+  /** overall when the season began */
+  ovrStart: number
+  /** the club whose academy produced the player */
+  homeClubId?: string
+  /** homegrown player who has already had a first-team debut */
+  debuted?: boolean
 }
 
 export interface Club {
@@ -46,6 +54,9 @@ export interface Club {
   /** 1..100 */
   reputation: number
 }
+
+export const TRAINING_FOCUSES = ['balanced', 'attack', 'defence', 'fitness', 'youth'] as const
+export type TrainingFocus = (typeof TRAINING_FOCUSES)[number]
 
 export type Style = 'attacking' | 'balanced' | 'defensive' | 'counter'
 export type FormationId = '4-4-2' | '4-3-3' | '4-2-3-1' | '3-5-2' | '5-3-2' | '4-5-1'
@@ -74,7 +85,7 @@ export interface Division {
 }
 
 export interface GameState {
-  version: 3
+  version: 4
   seed: number
   rngState: number
   /** starts 2027 */
@@ -95,6 +106,9 @@ export interface GameState {
   press: PressConference | null
   career: CareerStatus
   transfers: TransferState
+  training: TrainingFocus
+  /** this season's academy candidates, waiting for the user's decision */
+  youth: { intake: Player[] }
 }
 
 export type Expectation = 'title' | 'promotion' | 'topHalf' | 'midTable' | 'avoidRelegation'
@@ -105,7 +119,7 @@ export interface BoardState { expectation: Expectation; targetPosition: number; 
 export interface WeekLedger { season: number; matchday: number; tickets: number; sponsor: number; prize: number; wages: number; attendance?: number; /** net transfer fees */ transfers?: number }
 /** history newest first, max 40; transferNet = net fees since the last ledger entry */
 export interface Finance { balance: number; history: WeekLedger[]; transferNet: number }
-export type NewsKind = 'match' | 'league' | 'fans' | 'board' | 'press' | 'finance' | 'career' | 'transfer'
+export type NewsKind = 'match' | 'league' | 'fans' | 'board' | 'press' | 'finance' | 'career' | 'transfer' | 'youth'
 export interface NewsItem { id: string; season: number; matchday: number; kind: NewsKind; key: string; params: Record<string, string | number>; variant: number; read: boolean; important?: boolean }
 export type Answer = 'confident' | 'humble' | 'combative'
 export interface PressQuestion { key: string; params: Record<string, string | number> }

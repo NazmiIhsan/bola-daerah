@@ -1,5 +1,5 @@
 import { createStore, del, get, set, type UseStore } from 'idb-keyval'
-import { FREE_AGENT, type GameState } from '../game/types'
+import { FREE_AGENT, TRAINING_FOCUSES, type GameState } from '../game/types'
 import { SaveError } from './errors'
 import { migrate } from '../game/migrate'
 
@@ -85,7 +85,7 @@ export function importSave(json: string): GameState {
   const d = data as Record<string, unknown>
   for (const [k, type] of SHAPE) if (typeof d[k] !== type || d[k] === null) throw new SaveError('wrong_shape')
   if (!Array.isArray(d.fixtures) || !Array.isArray(d.divisions)) throw new SaveError('wrong_shape')
-  if (d.version !== 1 && d.version !== 2 && d.version !== 3) throw new SaveError('unsupported_version')
+  if (d.version !== 1 && d.version !== 2 && d.version !== 3 && d.version !== 4) throw new SaveError('unsupported_version')
   const { app: _app, ...rest } = d
   const state = migrate(rest)
   if (!isConsistent(state)) throw new SaveError('wrong_shape')
@@ -111,5 +111,6 @@ function isConsistent(s: GameState): boolean {
   if (!inDivs.every((c) => typeof tr.budgets[c]?.transfer === 'number' && typeof tr.budgets[c]?.wage === 'number')) return false
   if (!tr.offers.every((o) => o && o.playerId in s.players && o.clubId in s.clubs)) return false
   if (!Object.values(s.players).every((p) => p && (p.clubId === FREE_AGENT || p.clubId in s.clubs))) return false
+  if (!TRAINING_FOCUSES.includes(s.training) || !isArr(s.youth?.intake)) return false
   return s.fixtures.every((f) => f && f.homeId in s.clubs && f.awayId in s.clubs && typeof f.round === 'number')
 }

@@ -4,7 +4,7 @@ import { newsText } from '../../i18n'
 import type { GameState, NewsKind } from '../../game/types'
 
 const FILTERS: Array<NewsKind | 'all'> = ['all', 'match', 'fans', 'board', 'press', 'league', 'transfer', 'finance']
-const ICON: Record<NewsKind, string> = { match: '⚽', league: '🏆', fans: '📣', board: '🏛️', press: '🎤', finance: '💰', career: '💼', transfer: '🔁' }
+const ICON: Record<NewsKind, string> = { match: '⚽', league: '🏆', fans: '📣', board: '🏛️', press: '🎤', finance: '💰', career: '💼', transfer: '🔁', youth: '' }
 
 export function InboxScreen({ state, onRead }: { state: GameState; onRead(id: string): void }) {
   const { t, lang } = useT()

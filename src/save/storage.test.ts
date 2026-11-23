@@ -73,13 +73,14 @@ test('importSave rejects saves that are broken inside (semantic checks)', () => 
   expect(code({ ...base, tactics: { ...base.tactics, kapar: { ...base.tactics.kapar, lineup: ['ghost'] } } })).toBe('wrong_shape')
 })
 
-test('importSave upgrades v1 and v2 saves', async () => {
-  const { makeV1, makeV2 } = await import('../game/testUtils')
-  expect(importSave(JSON.stringify(makeV1())).version).toBe(3)
-  expect(importSave(JSON.stringify(makeV2())).version).toBe(3)
+test('importSave upgrades older saves', async () => {
+  const { makeV1, makeV2, makeV3 } = await import('../game/testUtils')
+  expect(importSave(JSON.stringify(makeV1())).version).toBe(4)
+  expect(importSave(JSON.stringify(makeV2())).version).toBe(4)
+  expect(importSave(JSON.stringify(makeV3())).version).toBe(4)
 })
 
-test('importSave rejects v3 saves with broken transfer data', () => {
+test('importSave rejects saves with broken transfer data', () => {
   const base = JSON.parse(exportSave(state))
   const code = (obj: unknown) => {
     try { importSave(JSON.stringify(obj)); return 'no error' } catch (e) { return (e as SaveError).code }
@@ -87,6 +88,8 @@ test('importSave rejects v3 saves with broken transfer data', () => {
   const { transfers: _t, ...noTransfers } = base
   expect(code(noTransfers)).toBe('wrong_shape')
   expect(code({ ...base, transfers: { ...base.transfers, offers: null } })).toBe('wrong_shape')
+  expect(code({ ...base, youth: { intake: null } })).toBe('wrong_shape')
+  expect(code({ ...base, training: 'yoga' })).toBe('wrong_shape')
   expect(code({ ...base, transfers: { ...base.transfers, budgets: {} } })).toBe('wrong_shape')
   const [id] = Object.keys(base.players)
   expect(code({ ...base, players: { ...base.players, [id]: { ...base.players[id], clubId: 'atlantis' } } })).toBe('wrong_shape')

@@ -1,4 +1,4 @@
-import { CONTRACT_SEED, initialTransfers, startingBalance, wageFor, withContractsAndFreeAgents } from './generate'
+import { CONTRACT_SEED, initialTransfers, overall, startingBalance, wageFor, withContractsAndFreeAgents } from './generate'
 import { expectationFor } from './reactions'
 import { createRng } from './rng'
 import type { GameState, Player } from './types'
@@ -12,7 +12,8 @@ export function migrate(raw: Raw): GameState {
   let s = raw
   if (s.version === 1) s = v1to2(s)
   if (s.version === 2) s = v2to3(s)
-  if (s.version !== 3) throw new SaveError('unsupported_version')
+  if (s.version === 3) s = v3to4(s)
+  if (s.version !== 4) throw new SaveError('unsupported_version')
   return s as unknown as GameState
 }
 
@@ -48,4 +49,12 @@ function v2to3(raw: Raw): Raw {
     finance: { ...s.finance, transferNet: 0 },
     transfers: initialTransfers(s.clubs, s.userClubId, s.finance.balance),
   }
+}
+
+/** Appearances, development tracking, training and the academy. */
+function v3to4(raw: Raw): Raw {
+  const s = raw as unknown as Old
+  const players: Record<string, Player> = {}
+  for (const p of Object.values(s.players)) players[p.id] = { ...p, apps: 0, ovrStart: overall(p) }
+  return { ...s, version: 4, players, training: 'balanced', youth: { intake: [] } }
 }

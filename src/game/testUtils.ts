@@ -4,16 +4,27 @@ import { FREE_AGENT } from './types'
 
 type Raw = Record<string, unknown>
 
+/** A Plan-3 (version 3) save: no appearances, youth or training. */
+export function makeV3(): Raw {
+  const s = JSON.parse(JSON.stringify(newGame(5, 'kapar')))
+  s.version = 3
+  for (const p of Object.values(s.players) as Raw[]) for (const k of ['apps', 'ovrStart', 'homeClubId', 'debuted']) delete p[k]
+  delete s.training
+  delete s.youth
+  return s
+}
+
 /** A Plan-2 (version 2) save: no contracts, free agents or transfer state. */
 export function makeV2(): Raw {
-  const s = JSON.parse(JSON.stringify(newGame(5, 'kapar')))
+  const s = makeV3()
   s.version = 2
-  for (const [id, p] of Object.entries(s.players) as Array<[string, Raw]>) {
-    if (p.clubId === FREE_AGENT) delete s.players[id]
+  const players = s.players as Record<string, Raw>
+  for (const [id, p] of Object.entries(players)) {
+    if (p.clubId === FREE_AGENT) delete players[id]
     else delete p.contractEnd
   }
   delete s.transfers
-  delete s.finance.transferNet
+  delete (s.finance as Raw).transferNet
   return s
 }
 
