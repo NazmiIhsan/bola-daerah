@@ -9,13 +9,15 @@ import { SquadScreen } from './screens/SquadScreen'
 import { TableScreen } from './screens/TableScreen'
 import { FixturesScreen } from './screens/FixturesScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
+import { TacticsScreen } from './screens/TacticsScreen'
 import { Kit, ClubLabel } from './components/bits'
 import { isSeasonOver } from '../game/season'
 
-type Tab = 'home' | 'squad' | 'table' | 'fixtures' | 'settings'
+type Tab = 'home' | 'squad' | 'tactics' | 'table' | 'fixtures' | 'settings'
 const TABS: Array<{ id: Tab; icon: string }> = [
   { id: 'home', icon: '🏠' },
   { id: 'squad', icon: '👥' },
+  { id: 'tactics', icon: '📋' },
   { id: 'table', icon: '📊' },
   { id: 'fixtures', icon: '📅' },
   { id: 'settings', icon: '⚙️' },
@@ -68,6 +70,7 @@ function GameShell({ game }: { game: GameApi }) {
       <main className="content">
         {tab === 'home' && <Dashboard game={game} onPlayMatch={() => game.continueDay()} />}
         {tab === 'squad' && <SquadScreen state={s} />}
+        {tab === 'tactics' && <TacticsScreen state={s} onChange={game.setTactics} />}
         {tab === 'table' && <TableScreen state={s} />}
         {tab === 'fixtures' && <FixturesScreen state={s} />}
         {tab === 'settings' && <SettingsScreen game={game} />}

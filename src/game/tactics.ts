@@ -1,5 +1,5 @@
 import { ratingAt } from './generate'
-import type { FormationId, Player, Position } from './types'
+import type { FormationId, Player, Position, Tactics } from './types'
 
 export const FORMATIONS: Record<FormationId, { DF: number; MF: number; FW: number }> = {
   '4-4-2': { DF: 4, MF: 4, FW: 2 },
@@ -71,4 +71,37 @@ export function teamStrength(players: (Player | undefined)[], formation: Formati
     midfield: (sum.MF + 0.25 * sum.FW + 0.15 * sum.DF) / 5.1,
     attack: (sum.FW + 0.4 * sum.MF + 0.1 * sum.DF) / 4.0,
   }
+}
+
+/**
+ * Swap two players between lineup slots, subs and reserves.
+ * Refuses (returns the same object) if an unavailable player would enter the lineup.
+ */
+export function swapInTactics(t: Tactics, a: string, b: string, players: Record<string, Player>): Tactics {
+  if (a === b) return t
+  const lineup = [...t.lineup]
+  const subs = [...t.subs]
+  const where = (id: string): ['lineup' | 'subs' | 'reserve', number] => {
+    const li = lineup.indexOf(id)
+    if (li >= 0) return ['lineup', li]
+    const si = subs.indexOf(id)
+    if (si >= 0) return ['subs', si]
+    return ['reserve', -1]
+  }
+  const [wa, ia] = where(a)
+  const [wb, ib] = where(b)
+  if ((wa === 'lineup' && wb !== 'lineup' && !isAvailable(players[b])) || (wb === 'lineup' && wa !== 'lineup' && !isAvailable(players[a]))) return t
+  const put = (w: string, i: number, id: string) => {
+    if (w === 'lineup') lineup[i] = id
+    else if (w === 'subs') subs[i] = id
+  }
+  put(wa, ia, b)
+  put(wb, ib, a)
+  return { ...t, lineup, subs }
+}
+
+/** Keep the same players but re-slot them for a new formation. */
+export function reslot(t: Tactics, formation: FormationId, players: Record<string, Player>): Tactics {
+  const current = t.lineup.map((id) => players[id]).filter(Boolean)
+  return { ...t, formation, lineup: pickBestLineup(current, formation).lineup }
 }

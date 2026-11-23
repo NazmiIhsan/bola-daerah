@@ -150,3 +150,30 @@ tr.me td { font-weight: 700; }
   .dash .next { grid-row: auto; }
   th, td { padding: .4rem .3rem; }
 }
+
+/* Tactics */
+.tactics { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.style-row { margin: .6rem 0; }
+.style-row button { flex: 1 1 auto; }
+.strength { display: grid; gap: .4rem; margin-top: .6rem; }
+.sbar { display: grid; grid-template-columns: 5.5em 1fr 2.5em; align-items: center; gap: .5rem; }
+.meter.wide { width: 100%; height: 8px; }
+.formation-pitch { position: relative; aspect-ratio: 68 / 100; background: var(--pitch); border-radius: 10px; overflow: hidden; max-width: 420px; margin: 0 auto; }
+.fp-lines span { position: absolute; border: 2px solid var(--pitch-line); }
+.fp-half { left: 0; right: 0; top: 50%; border-width: 2px 0 0 0 !important; }
+.fp-circle { width: 26%; aspect-ratio: 1; left: 37%; top: 50%; transform: translateY(-50%); border-radius: 50%; }
+.fp-box { left: 22%; width: 56%; height: 15%; }
+.fp-box.top { top: -2px; } .fp-box.bottom { bottom: -2px; }
+.fp-slot { position: absolute; transform: translate(-50%, -50%); }
+.fp-player { display: grid; justify-items: center; gap: 2px; padding: 3px 5px; background: rgba(0,0,0,.35); border: 2px solid transparent; color: #fff; border-radius: 8px; min-width: 56px; }
+.fp-player.sel { border-color: var(--accent-2); background: rgba(0,0,0,.6); }
+.fp-player.oop .pos { outline: 2px dashed var(--accent-2); }
+.fp-name { font-size: .72rem; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-empty { color: rgba(255,255,255,.6); border: 2px dashed rgba(255,255,255,.5); border-radius: 8px; padding: 4px 8px; font-size: .75rem; }
+.plist { display: grid; gap: .3rem; margin-bottom: 1rem; }
+.prow { display: flex; align-items: center; gap: .5rem; text-align: left; background: var(--surface); }
+.prow.sel { border-color: var(--accent-2); box-shadow: 0 0 0 2px var(--accent-2); }
+.prow.out { opacity: .6; }
+.grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 1100px) { .tactics { grid-template-columns: 1fr 1fr; } .tactics > :first-child { grid-column: 1 / -1; } }
+@media (max-width: 640px) { .tactics { grid-template-columns: 1fr; } .fp-player { min-width: 44px; } .fp-name { max-width: 52px; } }
