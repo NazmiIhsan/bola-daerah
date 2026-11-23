@@ -32,8 +32,14 @@ export interface MatchState {
   away: LiveTeam
   rngState: number
   finished: boolean
+  /** multiplier on home attack (fan atmosphere), default 1 */
+  homeBoost: number
 }
 
 export type TeamChange =
   | { kind: 'sub'; offId: string; onId: string }
   | { kind: 'tactics'; formation?: FormationId; style?: Style }
+
+export interface MatchOptions {
+  homeBoost?: number
+}

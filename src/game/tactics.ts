@@ -31,7 +31,8 @@ export function slotRoles(formation: FormationId): Position[] {
 export function contribution(p: Player, role: Position): number {
   const pos = p.position === role ? 1 : 0.7
   const fit = p.fitness >= 70 ? 1 : 0.8 + (0.2 * p.fitness) / 70
-  return ratingAt(p, role) * pos * fit
+  const morale = 0.95 + 0.1 * (p.morale / 100)
+  return ratingAt(p, role) * pos * fit * morale
 }
 
 export function pickBestLineup(squad: Player[], formation: FormationId): { lineup: string[]; subs: string[] } {

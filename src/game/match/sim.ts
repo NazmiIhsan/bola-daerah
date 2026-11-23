@@ -1,7 +1,7 @@
 import { createRng, type Rng } from '../rng'
 import { slotRoles, teamStrength } from '../tactics'
 import type { Player, Position, Style, Tactics } from '../types'
-import type { LiveTeam, MatchEvent, MatchState, Side, TeamChange } from './types'
+import type { LiveTeam, MatchEvent, MatchOptions, MatchState, Side, TeamChange } from './types'
 
 /** Tuning constants (calibrated by balance.test.ts). */
 export const SIM = {
@@ -30,7 +30,7 @@ function liveTeam(clubId: string, t: Tactics): LiveTeam {
   return { clubId, tactics: { ...t, lineup: [...t.lineup], subs: [...t.subs] }, onPitch, bench: [...t.subs], subsUsed: 0, sentOff: [] }
 }
 
-export function createMatch(homeId: string, awayId: string, tactics: Record<string, Tactics>, seed: number): MatchState {
+export function createMatch(homeId: string, awayId: string, tactics: Record<string, Tactics>, seed: number, opts: MatchOptions = {}): MatchState {
   return {
     minute: 0,
     score: { home: 0, away: 0 },
@@ -39,6 +39,7 @@ export function createMatch(homeId: string, awayId: string, tactics: Record<stri
     away: liveTeam(awayId, tactics[awayId]),
     rngState: createRng(seed).state(),
     finished: false,
+    homeBoost: opts.homeBoost ?? 1,
   }
 }
 
@@ -92,7 +93,7 @@ export function stepMinute(state: MatchState, players: Record<string, Player>): 
   const dStyle = s[def].tactics.style
   let styleMod = OWN[aStyle] * OPEN[dStyle]
   if (aStyle === 'counter' && dStyle === 'attacking') styleMod *= COUNTER_VS_ATTACKING
-  const homeMod = att === 'home' ? SIM.homeAttack : 1
+  const homeMod = att === 'home' ? SIM.homeAttack * (s.homeBoost ?? 1) : 1
   const ratio = st[att].attack / Math.max(0.5, st[def].defence)
   const pChance = Math.min(0.6, SIM.chanceBase * ratio ** SIM.chanceExponent * styleMod * homeMod)
 
@@ -186,8 +187,8 @@ export function applyChange(state: MatchState, side: Side, change: TeamChange): 
   return { ...state, events, [side]: team }
 }
 
-export function simulateFull(homeId: string, awayId: string, tactics: Record<string, Tactics>, players: Record<string, Player>, seed: number): MatchState {
-  let m = createMatch(homeId, awayId, tactics, seed)
+export function simulateFull(homeId: string, awayId: string, tactics: Record<string, Tactics>, players: Record<string, Player>, seed: number, opts: MatchOptions = {}): MatchState {
+  let m = createMatch(homeId, awayId, tactics, seed, opts)
   while (!m.finished) m = stepMinute(m, players)
   return m
 }

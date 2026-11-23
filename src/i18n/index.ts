@@ -2,9 +2,10 @@ import { en } from './en'
 import { ms } from './ms'
 import { COMMENTARY } from './commentary'
 import { NEWS } from './news'
+import { PRESS } from './press'
 import type { Rng } from '../game/rng'
 import type { MatchEvent } from '../game/match/types'
-import type { NewsItem } from '../game/types'
+import type { NewsItem, PressQuestion } from '../game/types'
 
 export type Lang = 'en' | 'ms'
 type Params = Record<string, string | number>
@@ -51,4 +52,12 @@ export function newsText(lang: Lang, item: NewsItem, clubName: (id: string) => s
   const [headline, body] = variants[item.variant % variants.length].split('|')
   const fill = (x: string) => interpolate(x, p).replace(/\{\w+\}/g, '')
   return body ? { headline: fill(headline), body: fill(body) } : { headline: fill(headline) }
+}
+
+export function pressText(lang: Lang, q: PressQuestion, clubName: (id: string) => string): string {
+  const variants = PRESS[lang][q.key] ?? PRESS.en[q.key]
+  if (!variants) return q.key
+  const v = typeof q.params.v === 'number' ? q.params.v : 0
+  const opp = typeof q.params.oppId === 'string' ? clubName(q.params.oppId) : ''
+  return interpolate(variants[v % variants.length], { opp }).replace(/\{\w+\}/g, '')
 }

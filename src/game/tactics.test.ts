@@ -84,3 +84,12 @@ test('formation shifts strength: 5-3-2 defends better than 4-3-3 with same quali
   expect(teamStrength(build(5, 3, 2), '5-3-2').defence).toBeGreaterThan(teamStrength(build(4, 3, 3), '4-3-3').defence)
   expect(teamStrength(build(4, 3, 3), '4-3-3').attack).toBeGreaterThan(teamStrength(build(5, 3, 2), '5-3-2').attack)
 })
+
+test('morale nudges contribution by at most 10%', async () => {
+  const { contribution } = await import('./tactics')
+  const p = squad.find((x) => x.position === 'MF')!
+  const hi = contribution({ ...p, morale: 100 }, 'MF')
+  const lo = contribution({ ...p, morale: 0 }, 'MF')
+  expect(hi).toBeGreaterThan(lo)
+  expect(hi / lo).toBeLessThanOrEqual(1.1 / 0.95 + 1e-9)
+})

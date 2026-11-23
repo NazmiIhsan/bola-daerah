@@ -85,3 +85,13 @@ test('stepMinute does not mutate its input', () => {
   stepMinute(m, players)
   expect(JSON.stringify(m)).toBe(snapshot)
 })
+
+test('homeBoost increases home goals', () => {
+  let base = 0, boosted = 0
+  for (let s = 0; s < 1000; s++) {
+    base += simulateFull('h', 'a', tactics, players, s).score.home
+    boosted += simulateFull('h', 'a', tactics, players, s, { homeBoost: 1.1 }).score.home
+  }
+  expect(boosted).toBeGreaterThan(base)
+  expect(createMatch('h', 'a', tactics, 1).homeBoost).toBe(1)
+})

@@ -56,3 +56,21 @@ describe('news templates', async () => {
     }
   })
 })
+
+describe('press templates', async () => {
+  const { PRESS } = await import('./press')
+  const { pressText, t } = await import('./index')
+  test('≥3 variants, same keys in both languages, no leftover placeholders', () => {
+    expect(Object.keys(PRESS.ms).sort()).toEqual(Object.keys(PRESS.en).sort())
+    for (const lang of ['en', 'ms'] as const) for (const key of Object.keys(PRESS.en)) {
+      expect(PRESS[lang][key].length).toBeGreaterThanOrEqual(3)
+      expect(pressText(lang, { key, params: { oppId: 'klang', v: 4 } }, (id) => id)).not.toMatch(/\{\w+\}/)
+    }
+  })
+  test('answer labels exist in both languages', () => {
+    for (const a of ['confident', 'humble', 'combative']) {
+      expect(t('ms', `press.a.${a}`)).not.toBe(`press.a.${a}`)
+      expect(t('en', `press.a.${a}.quote`)).not.toBe(`press.a.${a}.quote`)
+    }
+  })
+})
