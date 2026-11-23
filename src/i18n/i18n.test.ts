@@ -1,0 +1,39 @@
+import { t, commentary, createT } from './index'
+import { en } from './en'
+import { ms } from './ms'
+import { createRng } from '../game/rng'
+import type { EventType } from '../game/match/types'
+
+test('interpolates params', () => {
+  expect(t('en', 'dashboard.season', { season: 2027 })).toContain('2027')
+})
+
+test('missing ms key falls back to en, unknown key returns the key', () => {
+  const tt = createT({ en: { 'x.only': 'Only English' }, ms: {} })
+  expect(tt('ms', 'x.only')).toBe('Only English')
+  expect(tt('ms', 'does.not.exist')).toBe('does.not.exist')
+})
+
+test('every en key has an ms translation', () => {
+  const missing = Object.keys(en).filter((k) => !(k in ms) || !(ms as Record<string, string>)[k])
+  expect(missing).toEqual([])
+})
+
+test('commentary returns non-empty text for every EventType in both languages', () => {
+  const types: EventType[] = ['kickoff', 'chance', 'goal', 'save', 'miss', 'yellow', 'red', 'injury', 'sub', 'halftime', 'fulltime']
+  const rng = createRng(1)
+  for (const lang of ['en', 'ms'] as const) {
+    for (const type of types) {
+      const text = commentary(lang, { minute: 10, type, side: 'home', highlight: false }, { player: 'Ali', assist: 'Ben', club: 'Kapar', subOn: 'Chong' }, rng)
+      expect(text.trim().length).toBeGreaterThan(0)
+      expect(text).not.toMatch(/\{\w+\}/)
+    }
+  }
+})
+
+test('commentary has at least 3 variants for goals', () => {
+  const rng = createRng(2)
+  const seen = new Set<string>()
+  for (let i = 0; i < 60; i++) seen.add(commentary('ms', { minute: 1, type: 'goal', side: 'home', highlight: true }, { player: 'Ali', club: 'Kapar' }, rng))
+  expect(seen.size).toBeGreaterThanOrEqual(3)
+})
