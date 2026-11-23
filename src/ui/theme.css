@@ -248,3 +248,29 @@ tr.me td { font-weight: 700; }
 .press-a.humble { border-top: 3px solid var(--muted); }
 .press-a.combative { border-top: 3px solid var(--bad); }
 button.link { background: none; border: 0; color: var(--muted); text-decoration: underline; justify-self: start; padding: 0; }
+
+/* Transfers */
+input[type="number"], input[type="search"] { font: inherit; color: inherit; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: .45em .6em; width: 100%; min-width: 0; }
+input:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.banner.open { background: var(--up); color: var(--good); }
+.banner:not(.open):not(.warn):not(.error) { background: var(--surface-2); }
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .6rem; margin-bottom: .7rem; }
+.transfers .row .chips { margin-bottom: 0; }
+.check { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer; }
+.market-list { display: grid; gap: .35rem; }
+.market-row { display: flex; align-items: center; gap: .7rem; text-align: left; background: var(--surface); padding: .5em .7em; }
+.market-main { flex: 1; min-width: 0; display: grid; }
+.market-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.market-value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ovr { font-variant-numeric: tabular-nums; min-width: 1.6em; text-align: right; }
+.offers { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+.offer { display: flex; justify-content: space-between; gap: .8rem; flex-wrap: wrap; align-items: center; border: 1px solid var(--border); border-radius: 8px; padding: .7rem .8rem; }
+.player-dialog { max-height: calc(100vh - 32px); overflow-y: auto; }
+.player-dialog h2 { margin: 0; }
+.player-dialog .ovr { font-size: 1.6rem; }
+.attrs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .2rem 1rem; }
+.attrs li { display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.deal { display: grid; gap: .5rem; padding-top: .4rem; }
+.deal-msg { margin: 0; padding: .5em .8em; border-radius: 8px; background: var(--surface-2); }
+.deal-msg.good { background: var(--up); color: var(--good); }
+.deal-msg.bad { background: var(--down); color: var(--bad); }

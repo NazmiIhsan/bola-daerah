@@ -157,3 +157,25 @@ describe('press and sacking flow', () => {
     expect(within(header).getByText('Ijok')).toBeInTheDocument()
   })
 })
+
+test('transfers tab: signing a free agent puts them in the squad and the save', async () => {
+  const { loadGame, listSaves } = await import('../save/storage')
+  const user = await startKapar()
+  await user.click(screen.getByRole('button', { name: /Transfers/ }))
+  await user.click(screen.getByLabelText('Free agents only'))
+  const row = screen.getAllByRole('button', { name: /^View / })[23]
+  const player = row.getAttribute('aria-label')!.replace('View ', '')
+  await user.click(row)
+  await user.clear(screen.getByLabelText('Weekly wage (RM)'))
+  await user.type(screen.getByLabelText('Weekly wage (RM)'), '1500')
+  await user.click(screen.getByRole('button', { name: 'Offer contract' }))
+  expect(screen.getByRole('status')).toHaveTextContent('has signed!')
+  await user.click(screen.getByRole('button', { name: 'Close' }))
+  await user.click(screen.getByRole('button', { name: /Squad/ }))
+  expect(screen.getByText(player)).toBeInTheDocument()
+  await waitFor(async () => {
+    const meta = (await listSaves()).sort((a, b) => b.savedAt - a.savedAt)[0]
+    const s = (await loadGame(meta.slot))!
+    expect(Object.values(s.players).some((p) => p.clubId === 'kapar' && `${p.firstName} ${p.lastName}` === player)).toBe(true)
+  })
+})

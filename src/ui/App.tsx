@@ -14,17 +14,19 @@ import { MatchScreen } from './screens/MatchScreen'
 import { InboxScreen } from './screens/InboxScreen'
 import { ClubScreen } from './screens/ClubScreen'
 import { PressScreen } from './screens/PressScreen'
+import { TransfersScreen } from './screens/TransfersScreen'
 import { SackedScreen } from './screens/SackedScreen'
 import { unreadCount } from '../game/news'
 import { Kit, ClubLabel } from './components/bits'
 import { isSeasonOver } from '../game/season'
 
-type Tab = 'home' | 'inbox' | 'club' | 'squad' | 'tactics' | 'table' | 'fixtures' | 'settings'
+type Tab = 'home' | 'inbox' | 'club' | 'squad' | 'transfers' | 'tactics' | 'table' | 'fixtures' | 'settings'
 const TABS: Array<{ id: Tab; icon: string }> = [
   { id: 'home', icon: '🏠' },
   { id: 'inbox', icon: '📰' },
   { id: 'club', icon: '🏟️' },
   { id: 'squad', icon: '👥' },
+  { id: 'transfers', icon: '🔁' },
   { id: 'tactics', icon: '📋' },
   { id: 'table', icon: '📊' },
   { id: 'fixtures', icon: '📅' },
@@ -92,6 +94,7 @@ function GameShell({ game }: { game: GameApi }) {
           <button key={x.id} className={tab === x.id ? 'on' : ''} aria-current={tab === x.id ? 'page' : undefined} onClick={() => setTab(x.id)}>
             <span aria-hidden className="icon">{x.icon}</span>
             <span className="label">{t(`nav.${x.id}`)}</span>
+            {x.id === 'transfers' && s.transfers.offers.length > 0 && <span className="badge">{s.transfers.offers.length}</span>}
             {x.id === 'inbox' && unreadCount(s) > 0 && <span className="badge" aria-label={`${unreadCount(s)} unread`}>{unreadCount(s)}</span>}
           </button>
         ))}
@@ -101,6 +104,7 @@ function GameShell({ game }: { game: GameApi }) {
         {tab === 'inbox' && <InboxScreen state={s} onRead={game.markRead} />}
         {tab === 'club' && <ClubScreen state={s} />}
         {tab === 'squad' && <SquadScreen state={s} />}
+        {tab === 'transfers' && <TransfersScreen state={s} actions={game.transfers} />}
         {tab === 'tactics' && <TacticsScreen state={s} onChange={game.setTactics} />}
         {tab === 'table' && <TableScreen state={s} />}
         {tab === 'fixtures' && <FixturesScreen state={s} />}
