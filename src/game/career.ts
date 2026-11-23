@@ -32,7 +32,7 @@ export function takeJob(state: GameState, clubId: string): GameState {
     ...state,
     userClubId: clubId,
     fans: { mood: 60, log: [] },
-    finance: { balance: startingBalance(state.clubs[clubId]), history: [] },
+    finance: { balance: startingBalance(state.clubs[clubId]), history: [], transferNet: 0 },
     career: { kind: 'employed' },
     press: null,
   }

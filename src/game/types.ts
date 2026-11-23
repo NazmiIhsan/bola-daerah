@@ -1,3 +1,6 @@
+/** `clubId` of players without a club. */
+export const FREE_AGENT = 'free'
+
 export type Position = 'GK' | 'DF' | 'MF' | 'FW'
 export type AttrKey =
   | 'finishing' | 'passing' | 'dribbling' | 'tackling' | 'positioning'
@@ -18,12 +21,17 @@ export interface Player {
   fitness: number
   /** 0..100 */
   morale: number
+  /** club id, or FREE_AGENT */
   clubId: string
   injuredWeeks: number
   suspendedMatches: number
   yellowCards: number
   /** RM per week */
   wage: number
+  /** last season of the deal */
+  contractEnd: number
+  /** on the transfer list */
+  listed?: boolean
 }
 
 export interface Club {
@@ -66,7 +74,7 @@ export interface Division {
 }
 
 export interface GameState {
-  version: 2
+  version: 3
   seed: number
   rngState: number
   /** starts 2027 */
@@ -86,6 +94,7 @@ export interface GameState {
   inbox: NewsItem[]
   press: PressConference | null
   career: CareerStatus
+  transfers: TransferState
 }
 
 export type Expectation = 'title' | 'promotion' | 'topHalf' | 'midTable' | 'avoidRelegation'
@@ -93,12 +102,29 @@ export interface FanLogEntry { season: number; matchday: number; delta: number; 
 /** mood 0..100; log newest first, max 12 */
 export interface FanState { mood: number; log: FanLogEntry[] }
 export interface BoardState { expectation: Expectation; targetPosition: number; confidence: number }
-export interface WeekLedger { season: number; matchday: number; tickets: number; sponsor: number; prize: number; wages: number; attendance?: number }
-/** history newest first, max 40 */
-export interface Finance { balance: number; history: WeekLedger[] }
-export type NewsKind = 'match' | 'league' | 'fans' | 'board' | 'press' | 'finance' | 'career'
+export interface WeekLedger { season: number; matchday: number; tickets: number; sponsor: number; prize: number; wages: number; attendance?: number; /** net transfer fees */ transfers?: number }
+/** history newest first, max 40; transferNet = net fees since the last ledger entry */
+export interface Finance { balance: number; history: WeekLedger[]; transferNet: number }
+export type NewsKind = 'match' | 'league' | 'fans' | 'board' | 'press' | 'finance' | 'career' | 'transfer'
 export interface NewsItem { id: string; season: number; matchday: number; kind: NewsKind; key: string; params: Record<string, string | number>; variant: number; read: boolean; important?: boolean }
 export type Answer = 'confident' | 'humble' | 'combative'
 export interface PressQuestion { key: string; params: Record<string, string | number> }
 export interface PressConference { kind: 'pre' | 'post'; fixtureId: string; questions: PressQuestion[] }
 export type CareerStatus = { kind: 'employed' } | { kind: 'sacked'; offers: string[] }
+
+export interface Budget { transfer: number; wage: number }
+/** `expires` = last matchday it can be accepted */
+export interface IncomingOffer { id: string; playerId: string; clubId: string; fee: number; expires: number; negotiated?: boolean }
+export interface TransferRecord { season: number; matchday: number; playerId: string; name: string; fromId: string; toId: string; fee: number }
+export interface TransferState {
+  /** by clubId */
+  budgets: Record<string, Budget>
+  /** AI bids for the user's players */
+  offers: IncomingOffer[]
+  /** playerId → fee the selling club has accepted from the user */
+  agreed: Record<string, number>
+  /** players the user can't negotiate for until the next matchday */
+  blocked: string[]
+  /** newest first, max 60 */
+  history: TransferRecord[]
+}

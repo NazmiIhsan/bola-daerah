@@ -4,8 +4,8 @@ import * as N from './data/names'
 import { buildFixtures } from './schedule'
 import { pickBestLineup } from './tactics'
 import { expectationFor } from './reactions'
-import type { Division } from './types'
-import type { AttrKey, Attributes, Club, GameState, Player, Position, Tactics } from './types'
+import { FREE_AGENT } from './types'
+import type { AttrKey, Attributes, Budget, Club, Division, GameState, Player, Position, Tactics, TransferState } from './types'
 
 const ATTRS: AttrKey[] = ['finishing', 'passing', 'dribbling', 'tackling', 'positioning', 'pace', 'stamina', 'strength', 'goalkeeping', 'composure']
 
@@ -71,6 +71,7 @@ export function generatePlayer(rng: Rng, clubId: string, position: Position, qua
     suspendedMatches: 0,
     yellowCards: 0,
     wage: 0,
+    contractEnd: 0,
   }
   const growth = Math.max(0, 24 - a) * 0.6
   p.potential = clamp(Math.round(overall(p) + rng.next() * growth), Math.round(overall(p)), 20)
@@ -112,6 +113,41 @@ export function generateSquad(rng: Rng, club: Club): Player[] {
   })
 }
 
+const START_FREE_AGENTS = 24
+
+/** What the board allows for weekly wages: a full squad a little under the club's best XI level,
+ * which leaves every club some headroom over its starting wage bill. */
+export function wageBudgetFor(club: Pick<Club, 'reputation'>): number {
+  const q = 7 + ((club.reputation - 30) * 6) / 50 - 0.4
+  return Math.round((23 * q ** 2 * 14 * (0.6 + club.reputation / 100)) / 100) * 100
+}
+
+export function budgetFor(club: Pick<Club, 'reputation'>, balance: number): Budget {
+  return { transfer: Math.round(Math.max(0, balance) * 0.4), wage: wageBudgetFor(club) }
+}
+
+export function generateFreeAgents(rng: Rng, n: number): Player[] {
+  const order: Position[] = ['GK', 'DF', 'DF', 'MF', 'MF', 'FW']
+  return Array.from({ length: n }, (_, i) => generatePlayer(rng, FREE_AGENT, order[i % order.length], rng.int(5, 11)))
+}
+
+/** Budgets for every club and an empty market. AI clubs spend from a nominal balance. */
+export function initialTransfers(clubs: Record<string, Club>, userClubId: string, userBalance: number): TransferState {
+  const budgets: Record<string, Budget> = {}
+  for (const c of Object.values(clubs)) budgets[c.id] = budgetFor(c, c.id === userClubId ? userBalance : startingBalance(c))
+  return { budgets, offers: [], agreed: {}, blocked: [], history: [] }
+}
+
+/** Give every club player a contract ending `min`..`max` seasons from now, and add a pool of free agents. */
+export function withContractsAndFreeAgents(players: Record<string, Player>, rng: Rng, season: number, min: number, max: number): Record<string, Player> {
+  const out: Record<string, Player> = {}
+  for (const p of Object.values(players)) out[p.id] = { ...p, contractEnd: season + rng.int(min, max) }
+  for (const p of generateFreeAgents(rng, START_FREE_AGENTS)) out[p.id] = { ...p, contractEnd: season }
+  return out
+}
+
+export const CONTRACT_SEED = 0x51ed270b
+
 export function newGame(seed: number, userClubId: string): GameState {
   const rng = createRng(seed)
   const clubs: Record<string, Club> = {}
@@ -127,24 +163,26 @@ export function newGame(seed: number, userClubId: string): GameState {
     { id: 1, clubIds: [...DIVISION_1_IDS] },
     { id: 2, clubIds: [...DIVISION_2_IDS] },
   ]
+  const season = 2027
   const state: GameState = {
-    version: 2,
+    version: 3,
     seed,
     rngState: rng.state(),
-    season: 2027,
+    season,
     matchday: 1,
     userClubId,
     clubs,
-    players,
+    players: withContractsAndFreeAgents(players, createRng(seed ^ CONTRACT_SEED), season, 0, 3),
     divisions,
     fixtures: buildFixtures(divisions),
     tactics,
     fans: { mood: 60, log: [] },
     board: { expectation: 'midTable', targetPosition: 5, confidence: 60 },
-    finance: { balance: startingBalance(clubs[userClubId]), history: [] },
+    finance: { balance: startingBalance(clubs[userClubId]), history: [], transferNet: 0 },
     inbox: [],
     press: null,
     career: { kind: 'employed' },
+    transfers: initialTransfers(clubs, userClubId, startingBalance(clubs[userClubId])),
   }
   return { ...state, board: expectationFor(state) }
 }

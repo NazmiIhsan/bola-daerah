@@ -5,6 +5,7 @@ import type { MatchState } from './match/types'
 import { buildFixtures } from './schedule'
 import { computeTable } from './table'
 import { isAvailable, pickBestLineup } from './tactics'
+import { FREE_AGENT } from './types'
 import type { Division, Fixture, GameState, Player, Tactics } from './types'
 import { applyWeek, attendance, prizeMoney } from './finance'
 import { applyReaction, expectationFor, resultReaction, seasonEndReaction, shouldSack, userPosition, weeklyBoardCheck } from './reactions'
@@ -156,9 +157,10 @@ function rollOverSeason(state: GameState): GameState {
   for (const p of Object.values(state.players)) {
     const aged = { ...p, age: p.age + 1, yellowCards: 0, suspendedMatches: 0 }
     if (aged.age > RETIRE_AFTER_AGE) {
+      if (p.clubId === FREE_AGENT) continue
       const club = state.clubs[p.clubId]
       const youth = generatePlayer(rng, p.clubId, p.position, squadQuality(club) - 3, rng.int(17, 19))
-      players[youth.id] = youth
+      players[youth.id] = { ...youth, contractEnd: state.season + 3 }
     } else {
       players[aged.id] = aged
     }

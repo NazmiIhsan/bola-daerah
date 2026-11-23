@@ -29,7 +29,7 @@ export function divisionOf(state: GameState, clubId: string): 1 | 2 {
   return state.divisions[0].clubIds.includes(clubId) ? 1 : 2
 }
 
-/** One week of the user club's money: sponsor + tickets (home game) + prize − wages. */
+/** One week of the user club's money: sponsor + tickets (home game) + prize − wages. Transfer fees already moved the balance; they are only recorded. */
 export function applyWeek(state: GameState, opts: { homeAttendance?: number; prize?: number }): Finance {
   const club = state.clubs[state.userClubId]
   const div = divisionOf(state, club.id)
@@ -40,10 +40,11 @@ export function applyWeek(state: GameState, opts: { homeAttendance?: number; pri
     sponsor: weeklySponsor(club),
     prize: opts.prize ?? 0,
     wages: wageBill(state, club.id),
+    transfers: state.finance.transferNet,
   }
   if (opts.homeAttendance !== undefined) entry.attendance = opts.homeAttendance
   const net = entry.tickets + entry.sponsor + entry.prize - entry.wages
-  return { balance: state.finance.balance + net, history: [entry, ...state.finance.history].slice(0, HISTORY_CAP) }
+  return { balance: state.finance.balance + net, history: [entry, ...state.finance.history].slice(0, HISTORY_CAP), transferNet: 0 }
 }
 
 export function formatRM(n: number): string {

@@ -61,3 +61,13 @@ test('balance target: a typical season moves balance by −40%..+40% for every c
     expect({ club: c.id, ok: change >= -0.4 && change <= 0.4, change: Math.round(change * 100) }).toMatchObject({ ok: true })
   }
 })
+
+test('applyWeek moves the week’s transfer fees into the ledger without counting them twice', () => {
+  const s = newGame(1, 'klang')
+  const st = { ...s, finance: { ...s.finance, transferNet: -50_000 } }
+  const f = applyWeek(st, {})
+  const w = f.history[0]
+  expect(w.transfers).toBe(-50_000)
+  expect(f.transferNet).toBe(0)
+  expect(f.balance).toBe(st.finance.balance + w.sponsor - w.wages)
+})

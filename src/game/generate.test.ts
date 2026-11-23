@@ -74,12 +74,44 @@ test('every player has a wage, bigger clubs pay more', () => {
   expect(avg('petaling')).toBeGreaterThan(avg('jugra'))
 })
 
-test('newGame initialises v2 state: fans, board, finance, inbox, career', () => {
-  expect(g.version).toBe(2)
+test('newGame initialises fans, board, finance, inbox and career', () => {
+  expect(g.version).toBe(3)
   expect(g.fans).toEqual({ mood: 60, log: [] })
   expect(g.career).toEqual({ kind: 'employed' })
   expect(g.inbox).toEqual([])
   expect(g.press).toBeNull()
-  expect(g.finance).toEqual({ balance: g.clubs.kapar.reputation * 20000, history: [] })
+  expect(g.finance).toEqual({ balance: g.clubs.kapar.reputation * 20000, history: [], transferNet: 0 })
   expect(g.board.confidence).toBe(60)
+})
+
+describe('contracts, budgets and free agents', async () => {
+  const { budgetFor, wageBudgetFor } = await import('./generate')
+  const { wageBill } = await import('./finance')
+  const { FREE_AGENT } = await import('./types')
+  test('version 3 with contracts and 24 free agents', () => {
+    const s = newGame(8, 'kapar')
+    expect(s.version).toBe(3)
+    const all = Object.values(s.players)
+    const free = all.filter((p) => p.clubId === FREE_AGENT)
+    expect(free).toHaveLength(24)
+    for (const p of all) if (p.clubId !== FREE_AGENT) {
+      expect(p.contractEnd).toBeGreaterThanOrEqual(2027)
+      expect(p.contractEnd).toBeLessThanOrEqual(2030)
+    }
+    expect(s.finance.transferNet).toBe(0)
+    expect(s.transfers.offers).toEqual([])
+  })
+  test('wage budgets leave some headroom at every club; bigger clubs have more to spend', () => {
+    for (const seed of [1, 2, 3]) {
+      const s = newGame(seed, 'petaling')
+      for (const id of Object.keys(s.clubs)) {
+        const r = s.transfers.budgets[id].wage / wageBill(s, id)
+        expect({ id, ok: r >= 1.02 && r <= 1.6, r }).toMatchObject({ ok: true })
+      }
+      expect(s.transfers.budgets.petaling.transfer).toBeGreaterThan(s.transfers.budgets.jugra.transfer)
+    }
+    expect(budgetFor({ reputation: 50 }, -1000).transfer).toBe(0)
+    expect(budgetFor({ reputation: 50 }, 1000).transfer).toBe(400)
+    expect(wageBudgetFor({ reputation: 80 })).toBeGreaterThan(wageBudgetFor({ reputation: 30 }))
+  })
 })
