@@ -10,6 +10,7 @@ import { TableScreen } from './screens/TableScreen'
 import { FixturesScreen } from './screens/FixturesScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { TacticsScreen } from './screens/TacticsScreen'
+import { MatchScreen } from './screens/MatchScreen'
 import { Kit, ClubLabel } from './components/bits'
 import { isSeasonOver } from '../game/season'
 
@@ -43,6 +44,7 @@ function SeasonSummaryModal({ game }: { game: GameApi }) {
 function GameShell({ game }: { game: GameApi }) {
   const { t } = useT()
   const [tab, setTab] = useState<Tab>('home')
+  const [inMatch, setInMatch] = useState(false)
   const s = game.state!
   const club = s.clubs[s.userClubId]
   const div = s.divisions.find((d) => d.clubIds.includes(s.userClubId))!.id
@@ -59,6 +61,11 @@ function GameShell({ game }: { game: GameApi }) {
         </div>
       </header>
       {!game.storageOk && <p className="banner warn">{t('storage.unavailable')}</p>}
+      {inMatch ? (
+        <main className="content full">
+          <MatchScreen state={s} onFinish={(m) => { setInMatch(false); game.continueDay(m) }} />
+        </main>
+      ) : (<>
       <nav className="nav" aria-label="Main">
         {TABS.map((x) => (
           <button key={x.id} className={tab === x.id ? 'on' : ''} aria-current={tab === x.id ? 'page' : undefined} onClick={() => setTab(x.id)}>
@@ -68,13 +75,14 @@ function GameShell({ game }: { game: GameApi }) {
         ))}
       </nav>
       <main className="content">
-        {tab === 'home' && <Dashboard game={game} onPlayMatch={() => game.continueDay()} />}
+        {tab === 'home' && <Dashboard game={game} onPlayMatch={() => setInMatch(true)} />}
         {tab === 'squad' && <SquadScreen state={s} />}
         {tab === 'tactics' && <TacticsScreen state={s} onChange={game.setTactics} />}
         {tab === 'table' && <TableScreen state={s} />}
         {tab === 'fixtures' && <FixturesScreen state={s} />}
         {tab === 'settings' && <SettingsScreen game={game} />}
       </main>
+      </>)}
       {game.summary && <SeasonSummaryModal game={game} />}
     </div>
   )

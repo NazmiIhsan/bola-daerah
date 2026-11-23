@@ -7,6 +7,12 @@ afterEach(() => {
   try { localStorage.clear() } catch { /* ignore */ }
 })
 
+async function playWeek(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Play match' }))
+  await user.click(await screen.findByRole('button', { name: 'Skip to end' }))
+  await user.click(screen.getByRole('button', { name: 'Finish' }))
+}
+
 async function startKapar() {
   const user = userEvent.setup()
   render(<App />)
@@ -25,7 +31,7 @@ test('new game flow: pick Kapar and the dashboard shows Kapar', async () => {
 
 test('simulating a week advances the matchday and shows a result', async () => {
   const user = await startKapar()
-  await user.click(screen.getByRole('button', { name: /Play match|Simulate week/ }))
+  await playWeek(user)
   expect(await screen.findByText(/Matchday 2/)).toBeInTheDocument()
   expect(screen.queryByText('No matches played yet')).not.toBeInTheDocument()
 })
@@ -69,7 +75,7 @@ test('importing an invalid file shows an error message and keeps the start scree
 
 test('game autosaves and can be loaded again from the start screen', async () => {
   const user = await startKapar()
-  await user.click(screen.getByRole('button', { name: /Play match|Simulate week/ }))
+  await playWeek(user)
   await screen.findByText(/Matchday 2/)
   await user.click(screen.getAllByRole('button', { name: 'Settings' })[0])
   await user.click(screen.getByRole('button', { name: 'Quit to main menu' }))

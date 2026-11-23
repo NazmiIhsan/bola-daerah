@@ -132,3 +132,15 @@ test('squads stay 22–25 after endSeason retirements', () => {
 test('deterministic: same state + same calls gives same result', () => {
   expect(playMatchday(playMatchday(fresh()))).toEqual(playMatchday(playMatchday(fresh())))
 })
+
+test('matchTactics fixes an invalid user lineup and keeps a valid one', async () => {
+  const { matchTactics } = await import('./season')
+  const s = fresh()
+  expect(matchTactics(s).kapar).toEqual(s.tactics.kapar)
+  const hurt = s.tactics.kapar.lineup[4]
+  const s2 = { ...s, players: { ...s.players, [hurt]: { ...s.players[hurt], injuredWeeks: 2 } } }
+  const t = matchTactics(s2).kapar
+  expect(t.lineup).not.toContain(hurt)
+  expect(t.lineup).toHaveLength(11)
+  expect(t.style).toBe(s.tactics.kapar.style)
+})

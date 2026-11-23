@@ -76,16 +76,20 @@ export function applyResult(state: GameState, fixtureId: string, match: MatchSta
   }
 }
 
+/** Lineups as they will be at kick-off: AI clubs re-pick, the user's XI is kept unless invalid. */
+export function matchTactics(state: GameState): Record<string, Tactics> {
+  const tactics: Record<string, Tactics> = {}
+  for (const clubId of Object.keys(state.clubs)) tactics[clubId] = refreshTactics(state, clubId, clubId !== state.userClubId)
+  return tactics
+}
+
 export function playMatchday(state: GameState, userMatch?: MatchState): GameState {
   if (isSeasonOver(state)) return state
   const round = state.fixtures.filter((f) => f.round === state.matchday)
   const playing = new Set(round.flatMap((f) => [f.homeId, f.awayId]))
 
   // 1. Lineups for this round
-  const tactics = { ...state.tactics }
-  for (const clubId of Object.keys(state.clubs)) {
-    tactics[clubId] = refreshTactics(state, clubId, clubId !== state.userClubId)
-  }
+  const tactics = matchTactics(state)
 
   // 2. Weekly ticks: injuries heal, bans are served by clubs that play, fitness recovers
   const players: Record<string, Player> = {}
