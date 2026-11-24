@@ -168,6 +168,8 @@ export const ms: Partial<Record<I18nKey, string>> = {
   'settings.saved': 'Permainan disimpan',
   'settings.quit': 'Keluar ke menu utama',
   'settings.deleteSave': 'Padam simpanan ini',
+  'settings.faces': 'Wajah pemain:',
+  'settings.adapted': 'diubah suai',
   'nav.transfers': 'Perpindahan',
   'inbox.filter.transfer': 'Perpindahan',
   'fans.reason.signing': 'Tandatangani {player}',

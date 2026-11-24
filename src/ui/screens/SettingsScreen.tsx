@@ -2,6 +2,8 @@ import { useT, LanguageToggle } from '../LanguageContext'
 import { exportSave } from '../../save/storage'
 import type { GameApi } from '../useGame'
 
+const Out = ({ href, children }: { href: string; children: string }) => <a href={href} target="_blank" rel="noreferrer">{children}</a>
+
 export function SettingsScreen({ game }: { game: GameApi }) {
   const { t } = useT()
   const s = game.state!
@@ -22,6 +24,9 @@ export function SettingsScreen({ game }: { game: GameApi }) {
       {game.storageOk && (
         <div className="row"><button className="danger" onClick={() => { if (confirm(t('settings.deleteSave') + '?')) void game.removeSave() }}>{t('settings.deleteSave')}</button></div>
       )}
+      <p className="small muted credits">
+        {t('settings.faces')} <Out href="https://personas.draftbit.com/">Personas by Draftbit</Out> (<Out href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</Out>, {t('settings.adapted')}), <Out href="https://www.dicebear.com/">DiceBear</Out>
+      </p>
     </div>
   )
 }

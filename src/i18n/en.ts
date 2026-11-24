@@ -166,6 +166,8 @@ export const en = {
   'settings.saved': 'Game saved',
   'settings.quit': 'Quit to main menu',
   'settings.deleteSave': 'Delete this save',
+  'settings.faces': 'Player faces:',
+  'settings.adapted': 'adapted',
   'nav.transfers': 'Transfers',
   'inbox.filter.transfer': 'Transfers',
   'fans.reason.signing': 'Signed {player}',

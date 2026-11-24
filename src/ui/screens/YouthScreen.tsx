@@ -6,6 +6,8 @@ import { squad } from '../../game/market'
 import { fullName } from '../../game/transfers'
 import { INTAKE_DEADLINE, type signYouth } from '../../game/youth'
 import { TRAINING_FOCUSES, type GameState, type TrainingFocus } from '../../game/types'
+import { Avatar } from '../avatars/Avatar'
+import { playerFace } from '../avatars/face'
 import { Progress, ScoutStars } from '../components/bits'
 
 export interface YouthActions {
@@ -50,7 +52,8 @@ export function YouthScreen({ state, actions }: { state: GameState; actions: You
             <ul className="offers">
               {state.youth.intake.map((p) => (
                 <li key={p.id} className="offer">
-                  <div>
+                  <Avatar face={playerFace(p, state.clubs)} size={44} />
+                  <div className="offer-main">
                     <span className={`pos ${p.position}`}>{t(`pos.${p.position}`)}</span> <strong>{fullName(p)}</strong> <span className="muted small">{t('transfers.ageShort', { n: p.age })}</span>
                     <div className="small">{t('squad.ovr')} <strong>{Math.round(overall(p))}</strong> · {t('transfers.wage')} {formatRM(p.wage)}</div>
                     <ScoutStars p={p} />
@@ -76,7 +79,7 @@ export function YouthScreen({ state, actions }: { state: GameState; actions: You
                 {young.map((p) => (
                   <tr key={p.id}>
                     <td><span className={`pos ${p.position}`}>{t(`pos.${p.position}`)}</span></td>
-                    <td className="left"><strong>{fullName(p)}</strong>{p.homeClubId === me && <span className="tag listed">{t('youth.homegrown')}</span>}</td>
+                    <td className="left"><span className="who"><Avatar face={playerFace(p, state.clubs)} size={30} /><strong>{fullName(p)}</strong>{p.homeClubId === me && <span className="tag listed">{t('youth.homegrown')}</span>}</span></td>
                     <td>{p.age}</td><td><strong>{Math.round(overall(p))}</strong></td><td><Progress p={p} /></td><td>{p.apps}</td><td><ScoutStars p={p} bare /></td>
                   </tr>
                 ))}

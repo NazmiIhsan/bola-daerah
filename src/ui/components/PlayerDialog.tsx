@@ -4,6 +4,8 @@ import { formatRM } from '../../game/finance'
 import { overall } from '../../game/generate'
 import { maxYears, playerValue, transferWindow } from '../../game/market'
 import { fullName, type BidOutcome, type OfferOutcome, type TermsOutcome } from '../../game/transfers'
+import { Avatar } from '../avatars/Avatar'
+import { playerFace } from '../avatars/face'
 import { ScoutStars } from './bits'
 import { FREE_AGENT, type AttrKey, type GameState, type Player } from '../../game/types'
 
@@ -97,7 +99,8 @@ export function PlayerDialog({ state, playerId, actions, onClose }: { state: Gam
   return (
     <div className="modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal player-dialog" role="dialog" aria-modal="true" aria-label={name} ref={box} tabIndex={-1} onKeyDown={onKeyDown}>
-        <div className="row between">
+        <div className="dialog-head">
+          <Avatar face={playerFace(p, state.clubs)} size={64} />
           <h2><span className={`pos ${p.position}`}>{t(`pos.${p.position}`)}</span> {name}</h2>
           <strong className="ovr">{Math.round(overall(p))}</strong>
         </div>

@@ -6,6 +6,8 @@ import { playerValue, transferWindow, willJoin } from '../../game/market'
 import { fullName } from '../../game/transfers'
 import { FREE_AGENT, type GameState, type IncomingOffer, type Position } from '../../game/types'
 import { PlayerDialog, type TransferActions } from '../components/PlayerDialog'
+import { Avatar } from '../avatars/Avatar'
+import { playerFace } from '../avatars/face'
 import { ClubLabel } from '../components/bits'
 
 export type { TransferActions } from '../components/PlayerDialog'
@@ -60,6 +62,7 @@ function Market({ state, onOpen }: { state: GameState; onOpen(id: string): void 
         <div className="market-list">
           {found.slice(0, ROWS).map(({ p, name, ovr, value }) => (
             <button key={p.id} className="market-row" aria-label={t('transfers.view', { player: name })} onClick={() => onOpen(p.id)}>
+              <Avatar face={playerFace(p, state.clubs)} size={36} />
               <span className={`pos ${p.position}`}>{t(`pos.${p.position}`)}</span>
               <span className="market-main">
                 <span className="market-name">{name}</span>
@@ -81,7 +84,8 @@ function OfferItem({ state, offer, onAnswer }: { state: GameState; offer: Incomi
   const last = Math.min(offer.expires, state.matchday <= 3 ? 3 : 11)
   return (
     <li className="offer">
-      <div>
+      <Avatar face={playerFace(p, state.clubs)} size={44} />
+      <div className="offer-main">
         <strong>{fullName(p)}</strong> <span className={`pos ${p.position}`}>{t(`pos.${p.position}`)}</span> <strong>{Math.round(overall(p))}</strong>
         <div className="small"><ClubLabel state={state} id={offer.clubId} /> · <strong>{formatRM(offer.fee)}</strong> <span className="muted">({t('transfers.value')} {formatRM(playerValue(p, state.season))})</span></div>
         <div className="muted small">{t('transfers.expires', { n: last })}</div>

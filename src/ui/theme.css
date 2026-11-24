@@ -256,7 +256,7 @@ input:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .6rem; margin-bottom: .7rem; }
 .transfers .row .chips { margin-bottom: 0; }
 .check { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer; }
-.market-list { display: grid; gap: .35rem; }
+.market-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: .35rem; }
 .market-row { display: flex; align-items: center; gap: .7rem; text-align: left; background: var(--surface); padding: .5em .7em; }
 .market-main { flex: 1; min-width: 0; display: grid; }
 .market-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -295,3 +295,24 @@ input:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 /* .pos is also the position badge; gains must not inherit its box. */
 .delta.pos { display: inline-block; padding: 0; border-radius: 0; font-size: inherit; min-width: 2.4em; }
 .delta.small { font-size: .85rem; min-width: 0; }
+
+/* Faces */
+.avatar { flex: none; display: inline-block; overflow: hidden; border-radius: 50%; background: color-mix(in srgb, var(--muted) 22%, var(--surface)); }
+.avatar img { display: block; }
+.who { display: flex; align-items: center; gap: .55rem; }
+.who .tag { white-space: nowrap; }
+.offer-main { flex: 1 1 200px; min-width: 0; }
+.dialog-head { display: flex; align-items: center; gap: .8rem; }
+.dialog-head h2 { flex: 1; min-width: 0; }
+.press-ask { display: flex; align-items: flex-start; gap: .8rem; }
+.press-ask .press-q { flex: 1; min-width: 0; }
+.credits { margin: 1rem 0 0; }
+.credits a { color: inherit; }
+@media (max-width: 640px) {
+  .market-row { display: grid; grid-template: "face main ovr" "pos main value" / 40px minmax(0, 1fr) auto; gap: .2rem .7rem; }
+  .market-row .avatar { grid-area: face; justify-self: center; }
+  .market-row .pos { grid-area: pos; justify-self: center; align-self: start; text-align: center; }
+  .market-main { grid-area: main; align-self: center; }
+  .market-value { grid-area: value; }
+  .market-row .ovr { grid-area: ovr; align-self: end; font-size: 1.15rem; }
+}

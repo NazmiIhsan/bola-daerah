@@ -5,6 +5,8 @@ import { playerValue } from '../../game/market'
 import { fullName } from '../../game/transfers'
 import { Progress } from '../components/bits'
 import { PlayerDialog, type TransferActions } from '../components/PlayerDialog'
+import { Avatar } from '../avatars/Avatar'
+import { playerFace } from '../avatars/face'
 import { overall } from '../../game/generate'
 import type { GameState, Position } from '../../game/types'
 
@@ -28,7 +30,7 @@ export function SquadScreen({ state, actions }: { state: GameState; actions: Tra
             {squad.map((p) => (
               <tr key={p.id}>
                 <td><span className={`pos ${p.position}`}>{t(`pos.${p.position}`)}</span></td>
-                <td className="left"><button className="name-link" aria-label={t('transfers.view', { player: fullName(p) })} onClick={() => setOpenId(p.id)}>{fullName(p)}</button>{p.listed && <span className="tag listed">{t('transfers.listed')}</span>}</td>
+                <td className="left"><span className="who"><Avatar face={playerFace(p, state.clubs)} size={30} /><button className="name-link" aria-label={t('transfers.view', { player: fullName(p) })} onClick={() => setOpenId(p.id)}>{fullName(p)}</button>{p.listed && <span className="tag listed">{t('transfers.listed')}</span>}</span></td>
                 <td>{p.age}</td>
                 <td className="nowrap"><strong>{Math.round(overall(p))}</strong> <Progress p={p} /></td>
                 <td><span className="meter"><span style={{ width: `${p.fitness}%` }} /></span></td>
