@@ -107,7 +107,7 @@ button.danger { color: var(--bad); }
 .pill.W { background: var(--good); } .pill.D { background: var(--muted); } .pill.L { background: var(--bad); }
 
 /* Tables */
-.tables { display: grid; gap: 1rem; }
+.tables { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
 .table-wrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 th, td { padding: .45rem .5rem; text-align: center; border-bottom: 1px solid var(--border); }
