@@ -179,3 +179,12 @@ test('players their clubs have listed carry a tag, and only they do', async () =
   await user.clear(screen.getByLabelText('Search by name'))
   expect(screen.queryAllByText('Listed').length).toBeLessThanOrEqual(1)
 })
+
+test('listed only shows just the players their clubs want to sell', async () => {
+  const user = show({ ...rich, players: { ...rich.players, [target.id]: { ...target, listed: true } } })
+  await user.click(screen.getByLabelText('Listed only'))
+  expect(rows()).toHaveLength(1)
+  expect(rows()[0]).toHaveAccessibleName(`View ${name(target)}`)
+  await user.click(screen.getByLabelText('Listed only'))
+  expect(rows()).toHaveLength(40)
+})

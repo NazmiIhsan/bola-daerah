@@ -235,6 +235,7 @@ export const en = {
   'transfers.maxAge': 'Max age',
   'transfers.maxValue': 'Max value (RM)',
   'transfers.sort': 'Sort by',
+  'transfers.listedOnly': 'Listed only',
   'transfers.freeOnly': 'Free agents only',
   'transfers.showing': 'Showing {n} of {total}',
   'transfers.none': 'No players match.',

@@ -24,6 +24,7 @@ function Market({ state, onOpen }: { state: GameState; onOpen(id: string): void 
   const [maxAge, setMaxAge] = useState('')
   const [maxValue, setMaxValue] = useState('')
   const [freeOnly, setFreeOnly] = useState(false)
+  const [listedOnly, setListedOnly] = useState(false)
   const [willingOnly, setWillingOnly] = useState(true)
   const [sort, setSort] = useState<Sort>('ovr')
 
@@ -35,7 +36,7 @@ function Market({ state, onOpen }: { state: GameState; onOpen(id: string): void 
   const found = all
     .filter((x) => (!q || x.name.toLowerCase().includes(q)) && (!pos || x.p.position === pos) &&
       (maxAge === '' || x.p.age <= Number(maxAge)) && (maxValue === '' || x.value <= Number(maxValue)) &&
-      (!willingOnly || x.willing) && (!freeOnly || x.p.clubId === FREE_AGENT))
+      (!willingOnly || x.willing) && (!freeOnly || x.p.clubId === FREE_AGENT) && (!listedOnly || x.p.listed))
     .sort((a, b) => (sort === 'ovr' ? b.ovr - a.ovr : sort === 'value' ? b.value - a.value : a.p.age - b.p.age) || a.name.localeCompare(b.name))
 
   return (
@@ -55,6 +56,7 @@ function Market({ state, onOpen }: { state: GameState; onOpen(id: string): void 
           {POSITIONS.map((x) => <button key={x} className={pos === x ? 'on' : ''} aria-pressed={pos === x} onClick={() => setPos(pos === x ? null : x)}>{t(`pos.${x}`)}</button>)}
         </div>
         <label className="check"><input type="checkbox" checked={freeOnly} onChange={(e) => setFreeOnly(e.target.checked)} /> {t('transfers.freeOnly')}</label>
+        <label className="check"><input type="checkbox" checked={listedOnly} onChange={(e) => setListedOnly(e.target.checked)} /> {t('transfers.listedOnly')}</label>
         <label className="check"><input type="checkbox" checked={willingOnly} onChange={(e) => setWillingOnly(e.target.checked)} /> {t('transfers.willingOnly')}</label>
       </div>
       <p className="muted small">{t('transfers.showing', { n: Math.min(ROWS, found.length), total: found.length })}</p>

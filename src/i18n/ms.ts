@@ -237,6 +237,7 @@ export const ms: Partial<Record<I18nKey, string>> = {
   'transfers.maxAge': 'Umur maksimum',
   'transfers.maxValue': 'Nilai maksimum (RM)',
   'transfers.sort': 'Susun ikut',
+  'transfers.listedOnly': 'Yang dijual sahaja',
   'transfers.freeOnly': 'Pemain bebas sahaja',
   'transfers.showing': 'Memaparkan {n} daripada {total}',
   'transfers.none': 'Tiada pemain yang sepadan.',
