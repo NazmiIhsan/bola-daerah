@@ -13,7 +13,7 @@ const s = newGame(1, 'klang')
 test('answering every question submits one answer per question', () => {
   const onSubmit = vi.fn()
   render(<LanguageProvider><PressScreen press={press} state={s} onSubmit={onSubmit} onSkip={vi.fn()} /></LanguageProvider>)
-  expect(screen.getByText(/Petaling/)).toBeInTheDocument()
+  expect(screen.getByRole('blockquote')).toHaveTextContent('Petaling')
   expect(screen.getByText('Question 1 of 2')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: /Combative/ }))
   expect(screen.getByText('Question 2 of 2')).toBeInTheDocument()
@@ -26,4 +26,12 @@ test('skip calls onSkip', () => {
   render(<LanguageProvider><PressScreen press={press} state={s} onSubmit={vi.fn()} onSkip={onSkip} /></LanguageProvider>)
   fireEvent.click(screen.getByRole('button', { name: 'Skip press conference' }))
   expect(onSkip).toHaveBeenCalled()
+})
+
+test('the answers change with the question', () => {
+  render(<LanguageProvider><PressScreen press={press} state={s} onSubmit={vi.fn()} onSkip={vi.fn()} /></LanguageProvider>)
+  const answers = () => ['Confident', 'Humble', 'Combative'].map((n) => screen.getByRole('button', { name: new RegExp(n) }).textContent)
+  const first = answers()
+  fireEvent.click(screen.getByRole('button', { name: /Humble/ }))
+  answers().forEach((text, i) => expect(text).not.toBe(first[i]))
 })

@@ -10,6 +10,8 @@ export const ANSWER_EFFECTS: Record<Answer, { fans: number; morale: number; boar
   combative: { fans: 1, morale: 1, board: -2 },
 }
 const COMBATIVE_RIVALRY_FANS = 4
+/** Wordings per question; a conference has at most this many questions. */
+const QUESTION_VARIANTS = 3
 
 function lastResults(state: GameState, n: number): Array<'W' | 'D' | 'L'> {
   const me = state.userClubId
@@ -49,7 +51,13 @@ export function maybePress(state: GameState, kind: 'pre' | 'post', fixture: Fixt
   }
   const extraKey = kind === 'pre' ? 'press.q.pre.generic' : first === 'press.q.post.derby' ? 'press.q.post.derby' : first
   const n = rng.int(1, 3)
-  const q = (key: string): PressQuestion => ({ key, params: { oppId, v: rng.int(0, 999) } })
+  const asked = new Set<string>()
+  const q = (key: string): PressQuestion => {
+    let v = rng.int(0, 999)
+    while (asked.has(`${key}#${v % QUESTION_VARIANTS}`)) v++
+    asked.add(`${key}#${v % QUESTION_VARIANTS}`)
+    return { key, params: { oppId, v } }
+  }
   const questions = [q(first)]
   while (questions.length < n) questions.push(q(extraKey))
   return { kind, fixtureId: fixture.id, questions }

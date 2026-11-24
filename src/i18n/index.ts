@@ -3,9 +3,10 @@ import { ms } from './ms'
 import { COMMENTARY } from './commentary'
 import { NEWS } from './news'
 import { PRESS } from './press'
+import { PRESS_ANSWERS } from './pressAnswers'
 import type { Rng } from '../game/rng'
 import type { MatchEvent } from '../game/match/types'
-import type { NewsItem, PressQuestion } from '../game/types'
+import type { Answer, NewsItem, PressQuestion } from '../game/types'
 
 export type Lang = 'en' | 'ms'
 type Params = Record<string, string | number>
@@ -54,10 +55,20 @@ export function newsText(lang: Lang, item: NewsItem, clubName: (id: string) => s
   return body ? { headline: fill(headline), body: fill(body) } : { headline: fill(headline) }
 }
 
+function pressVariant<T>(variants: T[], q: PressQuestion): T {
+  return variants[(typeof q.params.v === 'number' ? q.params.v : 0) % variants.length]
+}
+
+const pressFill = (text: string, q: PressQuestion, clubName: (id: string) => string) =>
+  interpolate(text, { opp: typeof q.params.oppId === 'string' ? clubName(q.params.oppId) : '' }).replace(/\{\w+\}/g, '')
+
 export function pressText(lang: Lang, q: PressQuestion, clubName: (id: string) => string): string {
   const variants = PRESS[lang][q.key] ?? PRESS.en[q.key]
-  if (!variants) return q.key
-  const v = typeof q.params.v === 'number' ? q.params.v : 0
-  const opp = typeof q.params.oppId === 'string' ? clubName(q.params.oppId) : ''
-  return interpolate(variants[v % variants.length], { opp }).replace(/\{\w+\}/g, '')
+  return variants ? pressFill(pressVariant(variants, q), q, clubName) : q.key
+}
+
+/** What the manager would say to this exact question in the given tone. */
+export function answerText(lang: Lang, q: PressQuestion, answer: Answer, clubName: (id: string) => string): string {
+  const variants = PRESS_ANSWERS[lang][q.key] ?? PRESS_ANSWERS.en[q.key]
+  return variants ? pressFill(pressVariant(variants, q)[answer], q, clubName) : ''
 }

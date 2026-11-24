@@ -62,3 +62,19 @@ test('skipping lowers fans and board by 1 and clears press', () => {
   expect(after.press).toBeNull()
   expect(after.inbox[0].key).toBe('news.press.skipped')
 })
+
+test('a conference never asks the same question twice', () => {
+  const s = klang()
+  let long = 0
+  for (let seed = 0; seed < 200; seed++) {
+    const post = { ...normalFixture(s), result: { home: 5, away: 0 } }
+    const derby = { ...derbyFixture(s), result: { home: 1, away: 0 } }
+    for (const p of [maybePress(s, 'pre', derbyFixture(s), createRng(seed)), maybePress(s, 'pre', normalFixture(s), createRng(seed)), maybePress(s, 'post', post, createRng(seed)), maybePress(s, 'post', derby, createRng(seed))]) {
+      if (!p) continue
+      if (p.questions.length === 3) long++
+      const asked = p.questions.map((q) => `${q.key}#${Number(q.params.v) % 3}`)
+      expect(new Set(asked).size).toBe(asked.length)
+    }
+  }
+  expect(long).toBeGreaterThan(50)
+})

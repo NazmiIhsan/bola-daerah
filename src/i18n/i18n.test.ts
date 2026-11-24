@@ -77,7 +77,27 @@ describe('press templates', async () => {
   test('answer labels exist in both languages', () => {
     for (const a of ['confident', 'humble', 'combative']) {
       expect(t('ms', `press.a.${a}`)).not.toBe(`press.a.${a}`)
-      expect(t('en', `press.a.${a}.quote`)).not.toBe(`press.a.${a}.quote`)
+      expect(t('en', `press.a.${a}`)).not.toBe(`press.a.${a}`)
     }
+  })
+  test('every question has its own answers: no text is ever reused, in either language', async () => {
+    const { answerText } = await import('./index')
+    for (const lang of ['en', 'ms'] as const) {
+      const seen = new Map<string, string>()
+      for (const key of Object.keys(PRESS.en)) for (let v = 0; v < PRESS[lang][key].length; v++) for (const a of ['confident', 'humble', 'combative'] as const) {
+        const text = answerText(lang, { key, params: { oppId: 'klang', v } }, a, () => 'Klang')
+        expect(text.length).toBeGreaterThan(10)
+        expect(text).not.toMatch(/[{}]/)
+        expect(seen.get(text) ?? 'unique').toBe('unique')
+        seen.set(text, `${key}/${v}/${a}`)
+      }
+      expect(seen.size).toBe(8 * 3 * 3)
+    }
+  })
+  test('answers follow the question text for any stored variant number', async () => {
+    const { answerText } = await import('./index')
+    const at = (v: number) => answerText('en', { key: 'press.q.pre.generic', params: { oppId: 'klang', v } }, 'humble', () => 'Klang')
+    expect(at(997)).toBe(at(997 % 3))
+    expect(at(0)).not.toBe(at(1))
   })
 })
