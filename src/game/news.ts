@@ -32,6 +32,11 @@ export function markRead(state: GameState, id: string): GameState {
   return { ...state, inbox: state.inbox.map((n) => (n.id === id ? { ...n, read: true } : n)) }
 }
 
+export function markAllRead(state: GameState): GameState {
+  if (unreadCount(state) === 0) return state
+  return { ...state, inbox: state.inbox.map((n) => (n.read ? n : { ...n, read: true })) }
+}
+
 export function unreadCount(state: GameState): number {
   return state.inbox.filter((n) => !n.read).length
 }

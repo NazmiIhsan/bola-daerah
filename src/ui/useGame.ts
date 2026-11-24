@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { newGame } from '../game/generate'
 import { acceptJob, endSeason, isSeasonOver, playMatchday, preMatch, seasonSummary, type SeasonSummary } from '../game/season'
-import { markRead as markNewsRead } from '../game/news'
+import { markAllRead as markAllNewsRead, markRead as markNewsRead } from '../game/news'
 import { answerPress as answerPressFn, skipPress as skipPressFn } from '../game/press'
 import { createRng, type Rng } from '../game/rng'
 import { offerTerms, placeBid, renewContract, respondToOffer, toggleListed, type Act } from '../game/transfers'
@@ -62,6 +62,8 @@ export function useGame() {
   }, [state, setState])
 
   const markRead = useCallback((id: string) => { if (state) setState(markNewsRead(state, id)) }, [state, setState])
+
+  const markAllRead = useCallback(() => { if (state) setState(markAllNewsRead(state)) }, [state, setState])
 
   /** Run pre-match logic (maybe a press conference) and return the resulting state. */
   const beginMatch = useCallback((): GameState | null => {
@@ -130,7 +132,7 @@ export function useGame() {
     await quit()
   }, [slot, storageOk, quit])
 
-  return { state, setState, slot, storageOk, saves, summary, clearSummary: () => setSummary(null), startNew, continueDay, setTactics, markRead, beginMatch, answerPress, skipPress, takeJob, transfers, youth, loadSlot, openImported, quit, removeSave }
+  return { state, setState, slot, storageOk, saves, summary, clearSummary: () => setSummary(null), startNew, continueDay, setTactics, markRead, markAllRead, beginMatch, answerPress, skipPress, takeJob, transfers, youth, loadSlot, openImported, quit, removeSave }
 }
 
 export type GameApi = ReturnType<typeof useGame>

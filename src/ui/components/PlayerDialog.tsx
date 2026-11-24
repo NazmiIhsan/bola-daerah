@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useT } from '../LanguageContext'
 import { formatRM } from '../../game/finance'
 import { overall } from '../../game/generate'
@@ -7,6 +7,7 @@ import { fullName, type BidOutcome, type OfferOutcome, type TermsOutcome } from 
 import { Avatar } from '../avatars/Avatar'
 import { playerFace } from '../avatars/face'
 import { ScoutStars } from './bits'
+import { useModal } from './useModal'
 import { FREE_AGENT, type AttrKey, type GameState, type Player } from '../../game/types'
 
 export interface TransferActions {
@@ -18,7 +19,6 @@ export interface TransferActions {
 }
 
 const ATTRS: AttrKey[] = ['finishing', 'passing', 'dribbling', 'tackling', 'positioning', 'pace', 'stamina', 'strength', 'goalkeeping', 'composure']
-const FOCUSABLE = 'button:not(:disabled), input:not(:disabled), select:not(:disabled)'
 
 function MoneyField({ label, value, step, onChange }: { label: string; value: string; step: number; onChange(v: string): void }) {
   return (
@@ -45,26 +45,10 @@ export function PlayerDialog({ state, playerId, actions, onClose }: { state: Gam
     .filter((o) => !mine || o.season > p.contractEnd) : []
   const [years, setYears] = useState(() => yearOptions[0]?.y ?? 1)
   const [done, setDone] = useState(false)
-  const box = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const before = document.activeElement as HTMLElement | null
-    box.current?.focus()
-    return () => before?.focus?.()
-  }, [])
+  const modal = useModal(onClose)
 
   if (!p) return null
   const name = fullName(p)
-
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') { onClose(); return }
-    if (e.key !== 'Tab' || !box.current) return
-    const items = [...box.current.querySelectorAll<HTMLElement>(FOCUSABLE)]
-    if (items.length === 0) return
-    const first = items[0], last = items[items.length - 1]
-    if (e.shiftKey && (document.activeElement === first || document.activeElement === box.current)) { e.preventDefault(); last.focus() }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
-  }
 
   const sendBid = (e: FormEvent) => {
     e.preventDefault()
@@ -98,7 +82,7 @@ export function PlayerDialog({ state, playerId, actions, onClose }: { state: Gam
 
   return (
     <div className="modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="modal player-dialog" role="dialog" aria-modal="true" aria-label={name} ref={box} tabIndex={-1} onKeyDown={onKeyDown}>
+      <div className="modal player-dialog" {...modal} aria-label={name}>
         <div className="dialog-head">
           <Avatar face={playerFace(p, state.clubs)} size={64} />
           <h2><span className={`pos ${p.position}`}>{t(`pos.${p.position}`)}</span> {name}</h2>

@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
+    css: { include: [/\.css\?raw$/] },
     environment: 'node',
     setupFiles: ['src/test/setup.ts'],
     environmentMatchGlobs: [['src/ui/**', 'jsdom']],

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { InboxScreen } from './InboxScreen'
 import { LanguageProvider, LanguageToggle } from '../LanguageContext'
 import { newGame } from '../../game/generate'
-import { addNews, markRead, unreadCount } from '../../game/news'
+import { addNews, markAllRead, markRead, unreadCount } from '../../game/news'
 import { createRng } from '../../game/rng'
 import type { GameState } from '../../game/types'
 
@@ -23,7 +23,7 @@ function Harness({ initial }: { initial: GameState }) {
     <LanguageProvider>
       <LanguageToggle />
       <span data-testid="unread">{unreadCount(s)}</span>
-      <InboxScreen state={s} onRead={(id) => setS(markRead(s, id))} />
+      <InboxScreen state={s} onRead={(id) => setS(markRead(s, id))} onReadAll={() => setS(markAllRead(s))} />
     </LanguageProvider>
   )
 }
@@ -60,4 +60,12 @@ test('existing news switches language', () => {
 test('empty inbox shows a message', () => {
   render(<Harness initial={newGame(1, 'kapar')} />)
   expect(screen.getByText('No news yet.')).toBeInTheDocument()
+})
+
+test('Mark all read clears the count and then disappears', () => {
+  render(<Harness initial={seeded()} />)
+  expect(Number(screen.getByTestId('unread').textContent)).toBeGreaterThan(0)
+  fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }))
+  expect(screen.getByTestId('unread')).toHaveTextContent('0')
+  expect(screen.queryByRole('button', { name: 'Mark all read' })).not.toBeInTheDocument()
 })

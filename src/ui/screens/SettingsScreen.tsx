@@ -1,4 +1,5 @@
 import { useT, LanguageToggle } from '../LanguageContext'
+import { ThemeToggle } from '../ThemeToggle'
 import { exportSave } from '../../save/storage'
 import type { GameApi } from '../useGame'
 
@@ -19,6 +20,7 @@ export function SettingsScreen({ game }: { game: GameApi }) {
     <div className="card settings">
       <h2>{t('settings.title')}</h2>
       <div className="row"><span>{t('common.language')}</span><LanguageToggle /></div>
+      <div className="row"><span>{t('settings.theme')}</span><ThemeToggle /></div>
       <div className="row"><button onClick={download}>{t('settings.export')}</button></div>
       <div className="row"><button onClick={() => void game.quit()}>{t('settings.quit')}</button></div>
       {game.storageOk && (

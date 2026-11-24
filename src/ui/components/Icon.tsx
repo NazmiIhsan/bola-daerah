@@ -19,6 +19,8 @@ const ICONS = {
   mic: <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11.500a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6" /></>,
   money: <><ellipse cx="12" cy="6.5" rx="7" ry="3" /><path d="M5 6.500v5.500c0 1.7 3.1 3 7 3s7-1.3 7-3V6.5" /><path d="M5 12v5.500c0 1.7 3.1 3 7 3s7-1.3 7-3V12" /></>,
   briefcase: <><rect x="3.5" y="8" width="17" height="12" rx="2" /><path d="M9 8V5.500A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.500V8M3.5 13h17" /></>,
+  more: <path d="M5 7h14M5 12h14M5 17h14" />,
+  alert: <><path d="M12 4 2.8 19.500h18.400z" /><path d="M12 10v4.500M12 17v.1" /></>,
   up: <path d="M12 20V5M6 11l6-6 6 6" />,
   down: <path d="M12 4v15M6 13l6 6 6-6" />,
   back: <path d="M20 12H5M11 6l-6 6 6 6" />,

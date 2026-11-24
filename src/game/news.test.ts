@@ -1,4 +1,4 @@
-import { addNews, INBOX_CAP, markRead, matchdayNews, seasonStartNews, unreadCount } from './news'
+import { addNews, INBOX_CAP, markAllRead, markRead, matchdayNews, seasonStartNews, unreadCount } from './news'
 import { newGame } from './generate'
 import { createRng } from './rng'
 import type { GameState } from './types'
@@ -74,4 +74,12 @@ test('markRead and unreadCount', () => {
 test('seasonStartNews announces the board expectation', () => {
   const s = newGame(1, 'petaling')
   expect(seasonStartNews(s)[0]).toMatchObject({ kind: 'board', key: 'news.board.expectation.title' })
+})
+
+test('markAllRead reads everything and leaves a read inbox untouched', () => {
+  const s = addNews(newGame(1, 'kapar'), [{ kind: 'fans', key: 'news.fans.uneasy', params: { clubId: 'kapar' } }], createRng(1))
+  const read = markAllRead(s)
+  expect(unreadCount(read)).toBe(0)
+  expect(read.inbox).toHaveLength(s.inbox.length)
+  expect(markAllRead(read)).toBe(read)
 })

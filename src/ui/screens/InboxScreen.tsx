@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useT } from '../LanguageContext'
 import { Icon, type IconName } from '../components/Icon'
+import { unreadCount } from '../../game/news'
 import { newsText } from '../../i18n'
 import type { GameState, NewsKind } from '../../game/types'
 
 const FILTERS: Array<NewsKind | 'all'> = ['all', 'match', 'fans', 'board', 'press', 'league', 'transfer', 'youth', 'finance']
 const ICON: Record<NewsKind, IconName> = { match: 'ball', league: 'trophy', fans: 'megaphone', board: 'board', press: 'mic', finance: 'money', career: 'briefcase', transfer: 'transfers', youth: 'youth' }
 
-export function InboxScreen({ state, onRead }: { state: GameState; onRead(id: string): void }) {
+export function InboxScreen({ state, onRead, onReadAll }: { state: GameState; onRead(id: string): void; onReadAll(): void }) {
   const { t, lang } = useT()
   const [filter, setFilter] = useState<NewsKind | 'all'>('all')
   const [open, setOpen] = useState<string | null>(null)
@@ -15,7 +16,10 @@ export function InboxScreen({ state, onRead }: { state: GameState; onRead(id: st
   const items = state.inbox.filter((n) => filter === 'all' || n.kind === filter)
   return (
     <div className="card inbox">
-      <h2>{t('inbox.title')}</h2>
+      <div className="row between">
+        <h2>{t('inbox.title')}</h2>
+        {unreadCount(state) > 0 && <button onClick={onReadAll}>{t('inbox.readAll')}</button>}
+      </div>
       <div className="chips" role="group" aria-label={t('inbox.title')}>
         {FILTERS.map((f) => (
           <button key={f} className={filter === f ? 'on' : ''} aria-pressed={filter === f} onClick={() => setFilter(f)}>{t(`inbox.filter.${f}`)}</button>
