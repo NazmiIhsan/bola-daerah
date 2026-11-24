@@ -54,15 +54,15 @@ export function SquadScreen({ state, actions }: { state: GameState; actions: Tra
               <div className="squad-main">
                 <div className="squad-top">{name(p)}{listed(p)}</div>
                 <div className="squad-line small">{pos(p)} <span className="muted">{t('transfers.ageShort', { n: p.age })}</span> <Status p={p} /></div>
-                <div className="squad-line small muted">
-                  <span>{formatRM(playerValue(p, state.season))}</span>
-                  <span>{t('squad.perWeek', { wage: formatRM(p.wage) })}</span>
-                  {p.contractEnd <= state.season ? <span className="tag bad"><Icon name="alert" size={14} /> {t('squad.expiring')}</span> : <span>{t('squad.until', { year: p.contractEnd })}</span>}
-                </div>
               </div>
               <div className="squad-side">
                 <span><strong className="ovr">{Math.round(overall(p))}</strong> <Progress p={p} /></span>
                 <Fitness p={p} />
+              </div>
+              <div className="squad-line squad-deal small muted">
+                <span>{formatRM(playerValue(p, state.season))}</span>
+                <span>{t('squad.perWeek', { wage: formatRM(p.wage) })}</span>
+                  {p.contractEnd <= state.season ? <span className="tag bad"><Icon name="alert" size={14} /> {t('squad.expiring')}</span> : <span>{t('squad.until', { year: p.contractEnd })}</span>}
               </div>
             </li>
           ))}

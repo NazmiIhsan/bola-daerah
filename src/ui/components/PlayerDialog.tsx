@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { useT } from '../LanguageContext'
 import { formatRM } from '../../game/finance'
-import { overall } from '../../game/generate'
+import { overall, POSITION_WEIGHTS } from '../../game/generate'
 import { maxYears, playerValue, transferWindow } from '../../game/market'
 import { fullName, type BidOutcome, type OfferOutcome, type TermsOutcome } from '../../game/transfers'
 import { Avatar } from '../avatars/Avatar'
 import { playerFace } from '../avatars/face'
 import { ScoutStars } from './bits'
+import { Icon } from './Icon'
 import { useModal } from './useModal'
 import { FREE_AGENT, type AttrKey, type GameState, type Player } from '../../game/types'
 
@@ -19,6 +20,8 @@ export interface TransferActions {
 }
 
 const ATTRS: AttrKey[] = ['finishing', 'passing', 'dribbling', 'tackling', 'positioning', 'pace', 'stamina', 'strength', 'goalkeeping', 'composure']
+
+const level = (v: number) => (v >= 13 ? 'high' : v >= 8 ? 'mid' : 'low')
 
 function MoneyField({ label, value, step, onChange }: { label: string; value: string; step: number; onChange(v: string): void }) {
   return (
@@ -49,6 +52,8 @@ export function PlayerDialog({ state, playerId, actions, onClose }: { state: Gam
 
   if (!p) return null
   const name = fullName(p)
+  const weights = POSITION_WEIGHTS[p.position]
+  const attrs = [...ATTRS].sort((a, b) => (weights[b] ?? 0) - (weights[a] ?? 0))
 
   const sendBid = (e: FormEvent) => {
     e.preventDefault()
@@ -96,7 +101,13 @@ export function PlayerDialog({ state, playerId, actions, onClose }: { state: Gam
           {p.clubId !== FREE_AGENT && <><dt>{t('transfers.contract')}</dt><dd>{p.contractEnd}</dd></>}
         </dl>
         <ul className="attrs">
-          {ATTRS.map((k) => <li key={k}><span>{t(`attr.${k}`)}</span><strong>{p.attrs[k]}</strong></li>)}
+          {attrs.map((k) => (
+            <li key={k} className={weights[k] ? 'key' : ''}>
+              <span>{t(`attr.${k}`)}{weights[k] && <><Icon name="star" size={11} /><span className="sr-only">{t('attr.key')}</span></>}</span>
+              <span className={`meter ${level(p.attrs[k])}`} role="meter" aria-label={t(`attr.${k}`)} aria-valuemin={1} aria-valuemax={20} aria-valuenow={p.attrs[k]}><span style={{ width: `${p.attrs[k] * 5}%` }} /></span>
+              <strong>{p.attrs[k]}</strong>
+            </li>
+          ))}
         </ul>
         <ScoutStars p={p} />
         {message && <p role="status" className={`deal-msg ${message.tone}`}>{message.text}</p>}

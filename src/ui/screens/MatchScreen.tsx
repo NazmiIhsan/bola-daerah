@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../LanguageContext'
 import { applyChange, createMatch, stepMinute } from '../../game/match/sim'
+import { scorers } from '../../game/match/stats'
 import type { MatchEvent, MatchState, Side } from '../../game/match/types'
 import { matchOptions, matchTactics, userFixture } from '../../game/season'
 import { FORMATIONS } from '../../game/tactics'
@@ -10,10 +11,14 @@ import type { FormationId, GameState, Style } from '../../game/types'
 import { PitchCanvas, teamColors, type Highlight } from '../match/PitchCanvas'
 import { buildHighlight, type Frame } from '../match/highlights'
 import { slotPositions } from '../components/formationLayout'
+import { GoalBanner } from '../match/GoalBanner'
+import { MatchStats } from '../match/MatchStats'
+import { Icon } from '../components/Icon'
 import { Kit } from '../components/bits'
 
 const STYLES: Style[] = ['attacking', 'balanced', 'defensive', 'counter']
 const MS_PER_MINUTE = 400
+const GOAL_MS = 2400
 
 function kickoffFrame(m: MatchState): Frame {
   const home = slotPositions(m.home.tactics.formation).map((s) => ({ x: (100 - s.y) * 0.5, y: s.x }))
@@ -30,6 +35,7 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
   const [running, setRunning] = useState(true)
   const [speed, setSpeed] = useState(1)
   const [highlight, setHighlight] = useState<Highlight | null>(null)
+  const [goal, setGoal] = useState<MatchEvent | null>(null)
   const [offId, setOffId] = useState('')
   const [onId, setOnId] = useState('')
 
@@ -44,7 +50,7 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
   const matchRef = useRef(match)
   matchRef.current = match
   useEffect(() => {
-    if (!running || highlight || match.finished) return
+    if (!running || highlight || goal || match.finished) return
     const id = setInterval(() => {
       const m = matchRef.current
       const next = stepMinute(m, state.players)
@@ -59,14 +65,30 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
       setMatch(next)
     }, MS_PER_MINUTE / speed)
     return () => clearInterval(id)
-  }, [running, highlight, match.finished, speed, state.players])
+  }, [running, highlight, goal, match.finished, speed, state.players])
 
-  const endHighlight = useCallback(() => setHighlight(null), [])
+  // Nothing is given away before its highlight has played.
+  const events = highlight ? match.events.slice(0, highlight.key) : match.events
+  const score = { home: 0, away: 0 }
+  for (const e of events) if (e.type === 'goal' && e.side) score[e.side]++
+
+  const endHighlight = useCallback(() => {
+    const e = highlight && matchRef.current.events[highlight.key]
+    if (e?.type === 'goal') setGoal(e)
+    setHighlight(null)
+  }, [highlight])
+
+  useEffect(() => {
+    if (!goal) return
+    const id = setTimeout(() => setGoal(null), GOAL_MS / speed)
+    return () => clearTimeout(id)
+  }, [goal, speed])
 
   const skip = () => {
     let m = match
     while (!m.finished) m = stepMinute(m, state.players)
     setHighlight(null)
+    setGoal(null)
     setRunning(false)
     setMatch(m)
   }
@@ -78,9 +100,11 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
     const p = state.players[id]
     return p ? `${p.firstName.split(' ')[0]} ${p.lastName}` : undefined
   }
+  const onPitch = (ids: string[]) => ids.map((id) => state.players[id]?.lastName ?? '')
+  const names = { home: onPitch(match.home.onPitch), away: onPitch(match.away.onPitch) }
   const line = (e: MatchEvent, i: number) =>
     commentary(lang, e, { player: name(e.playerId), assist: name(e.assistId), subOn: name(e.subOnId), club: e.side ? state.clubs[match[e.side].clubId].name : undefined }, createRng(i * 7919 + e.minute))
-  const feed = match.events.map((e, i) => ({ e, i })).filter(({ e }) => e.type !== 'chance').reverse()
+  const feed = events.map((e, i) => ({ e, i })).filter(({ e }) => e.type !== 'chance').reverse()
 
   const benchIds = mine.bench.filter((id) => state.players[id])
   const pitchIds = mine.onPitch.filter(Boolean)
@@ -92,14 +116,22 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
     <div className="match">
       <div className="scorebar card">
         <span className="team"><Kit colors={homeClub.colors} /> {homeClub.name}</span>
-        <span className="score-big">{match.score.home} – {match.score.away}</span>
+        <span className="score-big" data-testid="score">{score.home} – {score.away}</span>
         <span className="team right">{awayClub.name} <Kit colors={awayClub.colors} /></span>
         <span className="clock" data-testid="clock">{match.minute}'</span>
+        {score.home + score.away > 0 && (['home', 'away'] as Side[]).map((side) => (
+          <ul key={side} className={`scorers small ${side}`}>
+            {scorers(events, side).map((g) => <li key={g.playerId}><Icon name="ball" size={13} /> {state.players[g.playerId]?.lastName} {g.minutes.map((m) => `${m}'`).join(', ')}</li>)}
+          </ul>
+        ))}
       </div>
 
       <div className="match-grid">
         <div className="pitch-wrap card">
-          <PitchCanvas idle={idle} highlight={highlight} speed={speed} colors={colors} onDone={endHighlight} />
+          <div className="pitch-stage">
+            <PitchCanvas idle={idle} highlight={highlight} speed={speed} colors={colors} names={names} onDone={endHighlight} />
+            {goal?.side && <GoalBanner player={name(goal.playerId) ?? ''} club={state.clubs[match[goal.side].clubId].name} colors={colors[goal.side]} />}
+          </div>
           <div className="controls row">
             {match.finished ? (
               <>
@@ -153,6 +185,7 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
               </label>
             </section>
           )}
+          <MatchStats events={events} possession={match.possession} colors={colors} />
           <section className="card feed-card">
             <ol className="feed" role="log" aria-live="polite">
               {feed.map(({ e, i }) => (

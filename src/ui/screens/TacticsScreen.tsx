@@ -77,7 +77,7 @@ export function TacticsScreen({ state, onChange }: { state: GameState; onChange(
       </section>
       <section className="card">
         <h2>{t('tactics.starting')}</h2>
-        <FormationPitch tactics={tac} players={byId} selected={selected} onSelect={setSelected} onSwap={swap} />
+        <FormationPitch tactics={tac} players={byId} clubs={state.clubs} selected={selected} onSelect={setSelected} onSwap={swap} />
       </section>
       <section className="card">
         <h3>{t('tactics.bench')}</h3>

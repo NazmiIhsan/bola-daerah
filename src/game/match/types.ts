@@ -34,6 +34,8 @@ export interface MatchState {
   finished: boolean
   /** multiplier on home attack (fan atmosphere), default 1 */
   homeBoost: number
+  /** minutes each side has had the ball */
+  possession: Record<Side, number>
   sharpness?: Sharpness
 }
 

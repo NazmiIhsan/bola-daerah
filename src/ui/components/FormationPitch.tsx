@@ -1,11 +1,15 @@
 import { useT } from '../LanguageContext'
 import { slotPositions } from './formationLayout'
 import { slotRoles } from '../../game/tactics'
-import type { Player, Tactics } from '../../game/types'
+import { ratingAt } from '../../game/generate'
+import { Avatar } from '../avatars/Avatar'
+import { playerFace } from '../avatars/face'
+import type { Club, Player, Tactics } from '../../game/types'
 
-export function FormationPitch({ tactics, players, onSwap, selected, onSelect, onPitch }: {
+export function FormationPitch({ tactics, players, clubs, onSwap, selected, onSelect, onPitch }: {
   tactics: Tactics
   players: Record<string, Player>
+  clubs: Record<string, Club>
   /** Called when a second player is clicked after a first. */
   onSwap?(a: string, b: string): void
   selected?: string | null
@@ -33,11 +37,13 @@ export function FormationPitch({ tactics, players, onSwap, selected, onSelect, o
             {pl ? (
               <button
                 className={`fp-player ${selected === id ? 'sel' : ''} ${pl.position !== roles[i] ? 'oop' : ''}`}
-                aria-label={`${pl.firstName} ${pl.lastName} (${t(`pos.${roles[i]}`)})`}
+                aria-label={t('tactics.onPitch', { player: `${pl.firstName} ${pl.lastName}`, pos: t(`pos.${roles[i]}`), rating: Math.round(ratingAt(pl, roles[i])), fitness: Math.round(pl.fitness) })}
                 onClick={() => click(id)}
               >
-                <span className={`pos ${roles[i]}`}>{t(`pos.${roles[i]}`)}</span>
+                <Avatar face={playerFace(pl, clubs)} size={30} />
+                <span className={`pos ${roles[i]}`}>{t(`pos.${roles[i]}`)} {Math.round(ratingAt(pl, roles[i]))}</span>
                 <span className="fp-name">{pl.lastName}</span>
+                <span className={`meter ${pl.fitness < 60 ? 'danger' : ''}`}><span style={{ width: `${pl.fitness}%` }} /></span>
               </button>
             ) : (
               <span className="fp-empty">{t(`pos.${roles[i]}`)}</span>

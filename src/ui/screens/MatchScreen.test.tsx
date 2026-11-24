@@ -2,6 +2,8 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { MatchScreen } from './MatchScreen'
 import { LanguageProvider } from '../LanguageContext'
 import { newGame } from '../../game/generate'
+import { simulateFull } from '../../game/match/sim'
+import { matchOptions, matchTactics, userFixture } from '../../game/season'
 import type { MatchState } from '../../game/match/types'
 
 afterEach(() => {
@@ -66,4 +68,48 @@ test('commentary feed shows text in the selected language', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Langkau ke akhir' }))
   const feed = screen.getByRole('log')
   expect(feed.textContent).toMatch(/Tamat perlawanan|Semuanya sudah berakhir|Wisel penamat/)
+})
+
+describe('live match view', () => {
+  const stateWithGoal = () => {
+    // find a seed whose match has a goal, so the test never depends on luck
+    for (let seed = 1; seed < 60; seed++) {
+      const s = newGame(seed, 'kapar')
+      const f = userFixture(s)!
+      const m = simulateFull(f.homeId, f.awayId, matchTactics(s), s.players, (s.rngState ^ (s.matchday * 2654435761)) >>> 0, matchOptions(s, f))
+      const first = m.events.find((e) => e.highlight)
+      if (first?.type === 'goal' && first.minute < 45) return { s, goal: first }
+    }
+    throw new Error('no goal found')
+  }
+
+  test('a goal is shown only after its highlight, then celebrated, then play goes on', () => {
+    vi.useFakeTimers()
+    const { s, goal } = stateWithGoal()
+    render(<LanguageProvider><MatchScreen state={s} onFinish={vi.fn()} /></LanguageProvider>)
+    const scorer = s.players[goal.playerId!]
+    act(() => { vi.advanceTimersByTime(400 * goal.minute + 50) })
+    expect(screen.getByTestId('clock')).toHaveTextContent(`${goal.minute}'`)
+    expect(screen.getByTestId('score')).toHaveTextContent('0 – 0')
+    act(() => { vi.advanceTimersByTime(4400) })
+    expect(screen.getByTestId('score')).toHaveTextContent(goal.side === 'home' ? '1 – 0' : '0 – 1')
+    expect(screen.getByTestId('goal')).toHaveTextContent(scorer.lastName)
+    expect(screen.getByTestId('clock')).toHaveTextContent(`${goal.minute}'`)
+    act(() => { vi.advanceTimersByTime(2600) })
+    expect(screen.queryByTestId('goal')).not.toBeInTheDocument()
+    act(() => { vi.advanceTimersByTime(900) })
+    expect(screen.getByTestId('clock')).not.toHaveTextContent(`${goal.minute}'`)
+  })
+
+  test('full-time shows scorers and statistics that match the score', () => {
+    const { s } = stateWithGoal()
+    render(<LanguageProvider><MatchScreen state={s} onFinish={vi.fn()} /></LanguageProvider>)
+    fireEvent.click(screen.getByRole('button', { name: 'Skip to end' }))
+    expect(screen.queryByTestId('goal')).not.toBeInTheDocument()
+    const stats = within(screen.getByRole('region', { name: 'Match stats' }))
+    for (const name of ['Possession', 'Shots', 'On target', 'Yellow cards', 'Red cards']) expect(stats.getByText(name)).toBeInTheDocument()
+    const goals = screen.getByTestId('score').textContent!.match(/\d+/g)!.map(Number).reduce((a, b) => a + b)
+    const minutes = [...document.querySelectorAll('.scorers')].flatMap((x) => x.textContent!.match(/\d+'/g) ?? [])
+    expect(minutes).toHaveLength(goals)
+  })
 })

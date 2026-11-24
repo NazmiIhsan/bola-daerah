@@ -76,7 +76,7 @@ export function Dashboard({ game, onPlayMatch, onGo }: { game: GameApi; onPlayMa
         </section>
       )}
 
-      <section className="card" role="region" aria-label={t('dashboard.position')}>
+      <section className="card league" role="region" aria-label={t('dashboard.position')}>
         <h2>{t('dashboard.position')} <span className="muted small">{t('common.division', { n: div.id })}</span></h2>
         <table className="mini">
           <tbody>
@@ -106,7 +106,7 @@ export function Dashboard({ game, onPlayMatch, onGo }: { game: GameApi; onPlayMa
       </section>
 
       {s.inbox.length > 0 && (
-        <section className="card" role="region" aria-label={t('dashboard.news')}>
+        <section className="card headlines-card" role="region" aria-label={t('dashboard.news')}>
           <h2>{t('dashboard.news')}</h2>
           <ul className="headlines">
             {s.inbox.slice(0, 3).map((n) => <li key={n.id} className={n.important ? 'important' : ''}>{newsText(lang, n, (id) => s.clubs[id]?.name ?? id).headline}</li>)}

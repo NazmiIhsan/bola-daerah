@@ -39,6 +39,7 @@ export function createMatch(homeId: string, awayId: string, tactics: Record<stri
     away: liveTeam(awayId, tactics[awayId]),
     rngState: createRng(seed).state(),
     finished: false,
+    possession: { home: 0, away: 0 },
     homeBoost: opts.homeBoost ?? 1,
     ...(opts.sharpness ? { sharpness: opts.sharpness } : {}),
   }
@@ -77,6 +78,7 @@ export function stepMinute(state: MatchState, players: Record<string, Player>): 
     ...state,
     minute: state.minute + 1,
     score: { ...state.score },
+    possession: { ...state.possession },
     events: [...state.events],
     home: cloneTeam(state.home),
     away: cloneTeam(state.away),
@@ -94,6 +96,7 @@ export function stepMinute(state: MatchState, players: Record<string, Player>): 
   const ma = st.away.midfield ** 2
   const att: Side = rng.next() < mh / (mh + ma || 1) ? 'home' : 'away'
   const def = other(att)
+  s.possession[att]++
   const aStyle = s[att].tactics.style
   const dStyle = s[def].tactics.style
   let styleMod = OWN[aStyle] * OPEN[dStyle]
