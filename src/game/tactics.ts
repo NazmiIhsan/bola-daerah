@@ -35,17 +35,31 @@ export function contribution(p: Player, role: Position): number {
   return ratingAt(p, role) * pos * fit * morale
 }
 
+/** Everyone's own position comes first; spare players cover a slot only when it is empty or they would do it better. */
 export function pickBestLineup(squad: Player[], formation: FormationId): { lineup: string[]; subs: string[] } {
   const pool = squad.filter(isAvailable)
+  const roles = slotRoles(formation)
   const used = new Set<string>()
-  const lineup: string[] = []
-  for (const role of slotRoles(formation)) {
-    const candidates = pool.filter((p) => !used.has(p.id))
-    if (candidates.length === 0) break
-    const best = candidates.reduce((a, b) => (contribution(b, role) > contribution(a, role) ? b : a))
-    used.add(best.id)
-    lineup.push(best.id)
+  const pick: (Player | undefined)[] = roles.map(() => undefined)
+  const bestFree = (role: Position, natural: boolean) => {
+    const candidates = pool.filter((p) => !used.has(p.id) && (!natural || p.position === role))
+    return candidates.length ? candidates.reduce((a, b) => (contribution(b, role) > contribution(a, role) ? b : a)) : undefined
   }
+  for (const natural of [true, false]) {
+    roles.forEach((role, i) => {
+      if (pick[i]) return
+      const p = bestFree(role, natural)
+      if (p) { pick[i] = p; used.add(p.id) }
+    })
+  }
+  roles.forEach((role, i) => {
+    const now = pick[i], cover = bestFree(role, false)
+    if (!now || !cover || contribution(cover, role) <= contribution(now, role)) return
+    used.delete(now.id)
+    used.add(cover.id)
+    pick[i] = cover
+  })
+  const lineup = pick.flatMap((p) => (p ? [p.id] : []))
   const subs = pool
     .filter((p) => !used.has(p.id))
     .sort((a, b) => contribution(b, b.position) - contribution(a, a.position))

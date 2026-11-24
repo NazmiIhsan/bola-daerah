@@ -126,6 +126,7 @@ export const en = {
   'nav.settings': 'Settings',
   'dashboard.season': 'Season {season}',
   'dashboard.nextMatch': 'Next match',
+  'dashboard.expected': 'Expected from {club}: {formation} · {style}',
   'dashboard.bye': 'No match this week. Your team rests.',
   'dashboard.position': 'League position',
   'dashboard.lastResults': 'Recent results',

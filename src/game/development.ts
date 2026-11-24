@@ -1,4 +1,5 @@
 import { overall, POSITION_WEIGHTS } from './generate'
+import { trainingByClub } from './manager'
 import type { Rng } from './rng'
 import { FREE_AGENT, type AttrKey, type GameState, type Player, type TrainingFocus } from './types'
 
@@ -65,9 +66,10 @@ function fade(p: Player, rng: Rng): Player {
 /** A week of training and match experience for everyone with a club. Players whose `apps` went up have played. */
 export function developWeek(before: GameState, after: GameState, rng: Rng): GameState {
   const players = { ...after.players }
+  const focuses = trainingByClub(before)
   for (const p of Object.values(players)) {
     if (p.clubId === FREE_AGENT) continue
-    const focus: TrainingFocus = p.clubId === after.userClubId && after.career.kind === 'employed' ? after.training : 'balanced'
+    const focus = focuses[p.clubId]
     const played = p.apps > (before.players[p.id]?.apps ?? p.apps)
     if (rng.chance(growthChance(p, played, focus))) players[p.id] = grow(p, rng)
     else if (rng.chance(declineChance(p, focus))) players[p.id] = fade(p, rng)

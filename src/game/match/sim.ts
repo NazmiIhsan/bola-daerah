@@ -1,4 +1,5 @@
 import { createRng, type Rng } from '../rng'
+import { manage } from './bench'
 import { slotRoles, teamStrength } from '../tactics'
 import type { Player, Position, Style, Tactics } from '../types'
 import type { LiveTeam, MatchEvent, MatchOptions, MatchState, Side, TeamChange } from './types'
@@ -42,6 +43,7 @@ export function createMatch(homeId: string, awayId: string, tactics: Record<stri
     possession: { home: 0, away: 0 },
     homeBoost: opts.homeBoost ?? 1,
     ...(opts.sharpness ? { sharpness: opts.sharpness } : {}),
+    ...(opts.managers ? { managers: opts.managers } : {}),
   }
 }
 
@@ -164,6 +166,11 @@ export function stepMinute(state: MatchState, players: Record<string, Player>): 
         }
       }
     }
+  }
+
+  for (const side of ['home', 'away'] as Side[]) {
+    const m = s.managers?.[side]
+    if (m && minute < 90) manage(s, side, m, players)
   }
 
   if (minute === 45) s.events.push({ minute, type: 'halftime', highlight: false })

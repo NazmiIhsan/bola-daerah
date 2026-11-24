@@ -170,3 +170,12 @@ test('players who would refuse to join are hidden until asked for', async () => 
   await user.click(screen.getByLabelText('Only players who would join'))
   expect(hidden()).toBe(true)
 })
+
+test('players their clubs have listed carry a tag, and only they do', async () => {
+  const user = show({ ...rich, players: { ...rich.players, [target.id]: { ...target, listed: true } } })
+  await user.type(screen.getByLabelText('Search by name'), name(target))
+  const row = screen.getAllByRole('button', { name: `View ${name(target)}` }).find((r) => r.textContent!.includes('Listed'))!
+  expect(row).toHaveAccessibleDescription('Listed')
+  await user.clear(screen.getByLabelText('Search by name'))
+  expect(screen.queryAllByText('Listed').length).toBeLessThanOrEqual(1)
+})

@@ -1,6 +1,7 @@
 import { generatePlayer, overall, squadQuality } from './generate'
 import { wageBill } from './finance'
 import { AI_SQUAD_MAX, POSITION_MIN, squad, SQUAD_MAX } from './market'
+import { isAiRun } from './manager'
 import { addNews, type NewNews } from './news'
 import { applyReaction } from './reactions'
 import { createRng, type Rng } from './rng'
@@ -11,7 +12,7 @@ const POSITIONS: Position[] = ['GK', 'DF', 'MF', 'FW']
 /** A comfortable number per position; the intake favours whatever is furthest below it. */
 const IDEAL: Record<Position, number> = { GK: 3, DF: 8, MF: 8, FW: 4 }
 const CONTRACT_YEARS = 2
-export const YOUTH_TUNING = { below: 3.6, minGrowth: 1, maxGrowth: 5.1, goldenChance: 0.08, goldenBonus: 3 }
+export const YOUTH_TUNING = { below: 3.75, minGrowth: 1, maxGrowth: 5.1, goldenChance: 0.08, goldenBonus: 3 }
 
 export function generateYouth(rng: Rng, club: Club, position: Position, season: number, bonus = 0): Player {
   const p = generatePlayer(rng, club.id, position, squadQuality(club) - YOUTH_TUNING.below + bonus, rng.int(16, 18))
@@ -41,7 +42,7 @@ const keepValue = (p: Player) => overall(p) + (p.age <= 22 ? 0.6 * Math.max(0, p
 export function aiIntake(state: GameState, rng: Rng): GameState {
   const players = { ...state.players }
   for (const club of Object.values(state.clubs)) {
-    if (club.id === state.userClubId && state.career.kind === 'employed') continue
+    if (!isAiRun(state, club.id)) continue
     let mates = [...squad(state, club.id), ...youthIntake(rng, state, club.id)]
     for (const p of mates) players[p.id] = p
     while (mates.length > AI_SQUAD_MAX) {

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { Dashboard } from './Dashboard'
 import { LanguageProvider } from '../LanguageContext'
 import { newGame } from '../../game/generate'
-import { playMatchday } from '../../game/season'
+import { matchTactics, playMatchday, userFixture } from '../../game/season'
 import type { GameApi } from '../useGame'
 import type { GameState } from '../../game/types'
 
@@ -45,4 +45,20 @@ test('result letters are translated', () => {
   const letters = [...document.querySelectorAll('.pill')].map((p) => p.textContent)
   expect(letters.length).toBeGreaterThan(3)
   for (const l of letters) expect(['M', 'S', 'K']).toContain(l)
+})
+
+test('next match says how the opponent will probably line up', () => {
+  const s = played(4)
+  const f = userFixture(s)!
+  const rival = f.homeId === 'kapar' ? f.awayId : f.homeId
+  const { formation, style } = matchTactics(s)[rival]
+  show(s)
+  const word = { attacking: 'Attacking', balanced: 'Balanced', defensive: 'Defensive', counter: 'Counter' }[style]
+  expect(within(screen.getByRole('region', { name: 'Next match' })).getByText(`Expected from ${s.clubs[rival].name}: ${formation} · ${word}`)).toBeInTheDocument()
+})
+
+test('the opponent’s likely line-up is translated', () => {
+  localStorage.setItem('bola-daerah.lang', 'ms')
+  show(played(4))
+  expect(screen.getByText(/^Jangkaan .+: \d(-\d)+ · (Menyerang|Seimbang|Bertahan|Serang balas)$/)).toBeInTheDocument()
 })

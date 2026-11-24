@@ -1,7 +1,8 @@
+import { useMemo } from 'react'
 import { useT } from '../LanguageContext'
 import { homeAlerts } from '../../game/alerts'
 import { computeTable, formOf, type Result } from '../../game/table'
-import { isSeasonOver, userFixture } from '../../game/season'
+import { isSeasonOver, matchTactics, userFixture } from '../../game/season'
 import type { GameApi } from '../useGame'
 import { ClubLabel } from '../components/bits'
 import { Crest } from '../components/Crest'
@@ -26,6 +27,8 @@ export function Dashboard({ game, onPlayMatch, onGo }: { game: GameApi; onPlayMa
   const pos = table.findIndex((r) => r.clubId === me) + 1
   const from = Math.max(0, Math.min(table.length - AROUND, pos - 1 - Math.floor(AROUND / 2)))
   const next = userFixture(s)
+  const rival = next && (next.homeId === me ? next.awayId : next.homeId)
+  const plan = useMemo(() => (rival ? matchTactics(s)[rival] : null), [s, rival])
   const over = isSeasonOver(s)
   const alerts = homeAlerts(s)
   const recent = fixtures
@@ -55,6 +58,7 @@ export function Dashboard({ game, onPlayMatch, onGo }: { game: GameApi; onPlayMa
           <>
             <div className="next-teams">{team(next.homeId)}<span className="vs">{t('common.vs')}</span>{team(next.awayId)}</div>
             <p className="muted">{next.homeId === me ? t('common.home') : t('common.away')} · {s.clubs[next.homeId].stadium}</p>
+            {rival && plan && <p className="small">{t('dashboard.expected', { club: s.clubs[rival].name, formation: plan.formation, style: t(`style.${plan.style}`) })}</p>}
             <button className="primary big" onClick={onPlayMatch}>{t('dashboard.playMatch')}</button>
           </>
         ) : (

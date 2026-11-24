@@ -1,5 +1,6 @@
 import { createRng, type Rng } from './rng'
 import { overall } from './generate'
+import { minutesPlayed } from './match/minutes'
 import { simulateFull } from './match/sim'
 import type { MatchOptions, MatchState } from './match/types'
 import { buildFixtures } from './schedule'
@@ -10,6 +11,7 @@ import { applyWeek, attendance, prizeMoney } from './finance'
 import { applyReaction, expectationFor, resultReaction, seasonEndReaction, shouldSack, userPosition, weeklyBoardCheck } from './reactions'
 import { addNews, matchdayNews, seasonEndNews, seasonStartNews } from './news'
 import { maybePress } from './press'
+import { aiTactics, isAiRun, managerOf, trainingByClub, trainingOf } from './manager'
 import { developWeek } from './development'
 import { aiIntake, intakeNews, youthIntake, youthWeek } from './youth'
 import { darkHorseNews, moveReputations, rollForm, underdogNews } from './momentum'
@@ -34,26 +36,22 @@ export function isSeasonOver(state: GameState): boolean {
 const squadOf = (state: GameState, clubId: string): Player[] =>
   Object.values(state.players).filter((p) => p.clubId === clubId)
 
-/** Re-pick a valid XI keeping formation and style. AI clubs always re-pick; the user only when the XI is invalid. */
-function refreshTactics(state: GameState, clubId: string, force: boolean): Tactics {
+/** AI managers plan afresh. The user's formation and style stay, and the XI too unless it is invalid. */
+function refreshTactics(state: GameState, clubId: string): Tactics {
+  if (isAiRun(state, clubId)) return aiTactics(state, clubId)
   const t = state.tactics[clubId]
   const squad = squadOf(state, clubId)
   const valid =
     t.lineup.length === 11 &&
     [...t.lineup, ...t.subs].every((id) => state.players[id]?.clubId === clubId && isAvailable(state.players[id]))
-  if (!force && valid) return t
+  if (valid) return t
   return { ...t, ...pickBestLineup(squad, t.formation) }
 }
 
 /** Mutates `players` (a copy owned by the caller) with cards, injuries and fatigue from one match. */
 function applyMatchEffects(players: Record<string, Player>, match: MatchState, rng: Rng) {
   const touch = (id: string) => (players[id] = { ...players[id] })
-  const played = new Set<string>()
-  for (const t of [match.home, match.away]) {
-    for (const id of [...t.tactics.lineup, ...t.onPitch, ...t.sentOff]) if (id) played.add(id)
-  }
   for (const e of match.events) {
-    if (e.type === 'sub' && e.subOnId) played.add(e.subOnId)
     if (!e.playerId || !players[e.playerId]) continue
     if (e.type === 'yellow') {
       const p = touch(e.playerId)
@@ -68,11 +66,11 @@ function applyMatchEffects(players: Record<string, Player>, match: MatchState, r
       touch(e.playerId).injuredWeeks = rng.int(1, 4)
     }
   }
-  for (const id of played) {
+  for (const [id, minutes] of Object.entries(minutesPlayed(match))) {
     if (!players[id]) continue
     const p = touch(id)
     p.apps += 1
-    p.fitness = Math.max(0, p.fitness - (30 - p.attrs.stamina))
+    p.fitness = Math.max(0, p.fitness - ((30 - p.attrs.stamina) * minutes) / 90)
   }
 }
 
@@ -91,7 +89,7 @@ export function applyResult(state: GameState, fixtureId: string, match: MatchSta
 /** Lineups as they will be at kick-off: AI clubs re-pick, the user's XI is kept unless invalid. */
 export function matchTactics(state: GameState): Record<string, Tactics> {
   const tactics: Record<string, Tactics> = {}
-  for (const clubId of Object.keys(state.clubs)) tactics[clubId] = refreshTactics(state, clubId, clubId !== state.userClubId)
+  for (const clubId of Object.keys(state.clubs)) tactics[clubId] = refreshTactics(state, clubId)
   return tactics
 }
 
@@ -102,14 +100,13 @@ function simulateRound(state: GameState, userMatch?: MatchState): GameState {
   // 1. Lineups for this round
   const tactics = matchTactics(state)
 
-  // 2. Weekly ticks: injuries heal, bans are served by clubs that play, fitness recovers
+  // 2. Weekly ticks: injuries heal, bans are served by clubs that play
   const players: Record<string, Player> = {}
   for (const p of Object.values(state.players)) {
     players[p.id] = {
       ...p,
       injuredWeeks: Math.max(0, p.injuredWeeks - 1),
       suspendedMatches: playing.has(p.clubId) ? Math.max(0, p.suspendedMatches - 1) : p.suspendedMatches,
-      fitness: Math.min(100, p.fitness + (p.clubId === state.userClubId && state.training === 'fitness' ? 25 : 20)),
     }
   }
 
@@ -122,6 +119,10 @@ function simulateRound(state: GameState, userMatch?: MatchState): GameState {
     applyMatchEffects(players, match, rng)
     results.set(f.id, { ...match.score })
   }
+
+  // 4. A week's rest before the next kick-off
+  const focus = trainingByClub(state)
+  for (const p of Object.values(players)) players[p.id] = { ...p, fitness: Math.min(100, p.fitness + (focus[p.clubId] === 'fitness' ? 25 : 20)) }
 
   return {
     ...state,
@@ -160,7 +161,7 @@ function rollOverSeason(ended: GameState): { state: GameState; left: Player[] } 
 
   const players: Record<string, Player> = {}
   for (const p of Object.values(state.players)) {
-    const aged = { ...p, age: p.age + 1, yellowCards: 0, suspendedMatches: 0, apps: 0, ovrStart: overall(p) }
+    const aged = { ...p, age: p.age + 1, fitness: 100, yellowCards: 0, suspendedMatches: 0, apps: 0, ovrStart: overall(p) }
     if (aged.age <= RETIRE_AFTER_AGE) players[aged.id] = aged
   }
 
@@ -177,7 +178,7 @@ function rollOverSeason(ended: GameState): { state: GameState; left: Player[] } 
   next = { ...next, form: rollForm(next, rng, champions), youth: { intake: next.career.kind === 'employed' ? youthIntake(rng, next, next.userClubId) : [] } }
   next = { ...next, rngState: rng.state() }
   const tactics = { ...state.tactics }
-  for (const clubId of Object.keys(state.clubs)) tactics[clubId] = refreshTactics(next, clubId, clubId !== state.userClubId)
+  for (const clubId of Object.keys(state.clubs)) tactics[clubId] = refreshTactics(next, clubId)
   return { state: { ...next, tactics }, left }
 }
 
@@ -188,18 +189,22 @@ export function userHomeBoost(state: GameState): number {
   return 1 + (state.fans.mood - 50) / 1000
 }
 
-/** A club's edge in matches: the user's training focus, or an AI club's season form. */
+/** A club's edge in matches: training focus, and season form for AI clubs. */
 function clubSharpness(state: GameState, clubId: string): { attack: number; defence: number } {
-  if (clubId === state.userClubId) return { attack: state.training === 'attack' ? FOCUS_EDGE : 1, defence: state.training === 'defence' ? FOCUS_EDGE : 1 }
-  const form = state.form[clubId] ?? 1
-  return { attack: form, defence: form }
+  const focus = trainingOf(state, clubId)
+  const form = isAiRun(state, clubId) ? state.form[clubId] ?? 1 : 1
+  return { attack: form * (focus === 'attack' ? FOCUS_EDGE : 1), defence: form * (focus === 'defence' ? FOCUS_EDGE : 1) }
 }
 
-/** Crowd and form effects for a fixture. */
+/** Crowd and form effects for a fixture, and who is on each touchline. */
 export function matchOptions(state: GameState, f: Pick<Fixture, 'homeId' | 'awayId'>): MatchOptions {
   return {
     homeBoost: f.homeId === state.userClubId ? userHomeBoost(state) : 1,
     sharpness: { home: clubSharpness(state, f.homeId), away: clubSharpness(state, f.awayId) },
+    managers: {
+      ...(isAiRun(state, f.homeId) ? { home: managerOf(state, f.homeId) } : {}),
+      ...(isAiRun(state, f.awayId) ? { away: managerOf(state, f.awayId) } : {}),
+    },
   }
 }
 

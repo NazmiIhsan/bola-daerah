@@ -3,6 +3,7 @@ import { CLUBS } from './data/clubs'
 import { squad } from './market'
 import { simulateFull } from './match/sim'
 import { migrate } from './migrate'
+import { aiFocus } from './manager'
 import { moveReputations, rollForm, underdogNews } from './momentum'
 import { createRng } from './rng'
 import { acceptJob, endSeason, isSeasonOver, matchOptions, playMatchday, seasonSummary, userFixture } from './season'
@@ -52,7 +53,12 @@ test('match options carry the opponent’s form and leave the user’s club at 1
   const o = matchOptions(base, f)
   expect(o.sharpness![home ? 'home' : 'away']).toEqual({ attack: 1, defence: 1 })
   const rival = base.form[home ? f.awayId : f.homeId]
-  expect(o.sharpness![home ? 'away' : 'home']).toEqual({ attack: rival, defence: rival })
+  const focus = aiFocus(base, home ? f.awayId : f.homeId)
+  const edge = o.sharpness![home ? 'away' : 'home']!
+  expect(edge.attack).toBeCloseTo(rival * (focus === 'attack' ? 1.02 : 1))
+  expect(edge.defence).toBeCloseTo(rival * (focus === 'defence' ? 1.02 : 1))
+  expect(o.managers).toHaveProperty(home ? 'away' : 'home')
+  expect(o.managers).not.toHaveProperty(home ? 'home' : 'away')
 })
 
 test('reputations rise for overachievers, fall for flops, and stay in range', () => {

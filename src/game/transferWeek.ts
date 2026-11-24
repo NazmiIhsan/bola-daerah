@@ -1,18 +1,23 @@
 import { formatRM } from './finance'
-import { initialTransfers, overall } from './generate'
-import { AI_SQUAD_MAX, askingPrice, canLeave, improvement, justJoined, playerValue, POSITION_MIN, squad, transferWindow, wageDemand, willJoin } from './market'
+import { initialTransfers, overall, wageFor } from './generate'
+import { AI_SQUAD_MAX, askingPrice, canLeave, improvement, justJoined, maxYears, playerValue, POSITION_MIN, squad, transferWindow, wageDemand, willJoin } from './market'
+import { aiListings, aiRenews, hasWageRoom, isAiRun, managerOf } from './manager'
+import { isAvailable } from './tactics'
 import { addNews, type NewNews } from './news'
 import type { Rng } from './rng'
 import { generateYouth } from './youth'
 import { fullName, makeOffer, movePlayer } from './transfers'
 import { FREE_AGENT, type GameState, type Player, type Position } from './types'
 
+const SCOUTED = 3
+const MIN_FIT = 16
 const AI_BUY_CHANCE = 0.25
 const MAX_DEALS = 4
 const MAX_DEAL_NEWS = 2
 const MAX_OFFERS = 4
 const MIN_IMPROVEMENT = 0.5
 const EXPIRY_REMINDER = 14
+const LAST_MATCHDAY = 18
 
 function shuffled<T>(items: T[], rng: Rng): T[] {
   const a = [...items]
@@ -46,9 +51,13 @@ function aiSigning(state: GameState, clubId: string, rng: Rng): GameState {
     improvement(state, clubId, p) > MIN_IMPROVEMENT &&
     askingPrice(state, p.id, clubId) <= budget &&
     willJoin(state, p.id, clubId) &&
-    canLeave(state, p.id))
+    canLeave(state, p.id) &&
+    hasWageRoom(state, clubId, wageDemand(state, p.id, clubId)))
   if (targets.length === 0) return state
-  const p = rng.pick(targets)
+  // The scouts bring a few names; the manager picks by age, not ability, or the clubs would hoover up all the best players.
+  const youth = managerOf(state, clubId).youth
+  const rating = (x: Player) => (0.5 - youth) * x.age
+  const p = Array.from({ length: SCOUTED }, () => rng.pick(targets)).reduce((a, b) => (rating(b) > rating(a) ? b : a))
   return movePlayer(state, p.id, clubId, { fee: askingPrice(state, p.id, clubId), wage: wageDemand(state, p.id, clubId), contractEnd: state.season + rng.int(1, 3) })
 }
 
@@ -57,10 +66,24 @@ function aiDeals(state: GameState, rng: Rng): GameState {
   let deals = 0
   for (const clubId of shuffled(Object.keys(state.clubs), rng)) {
     if (deals >= MAX_DEALS) break
-    if (clubId === state.userClubId || !rng.chance(AI_BUY_CHANCE)) continue
+    if (!isAiRun(state, clubId) || !rng.chance(AI_BUY_CHANCE)) continue
     const next = aiSigning(s, clubId, rng)
     if (next !== s) deals++
     s = next
+  }
+  return s
+}
+
+/** Between windows an AI club short of fit players signs a free agent. */
+function emergencySignings(state: GameState, rng: Rng): GameState {
+  let s = state
+  for (const clubId of shuffled(Object.keys(state.clubs), rng)) {
+    if (!isAiRun(s, clubId) || squad(s, clubId).filter(isAvailable).length >= MIN_FIT || squad(s, clubId).length >= AI_SQUAD_MAX) continue
+    const position = weakestPosition(s, clubId)
+    const pool = squad(s, FREE_AGENT).filter((p) => p.position === position && !justJoined(s, p.id) && hasWageRoom(s, clubId, wageDemand(s, p.id, clubId)))
+    if (pool.length === 0) continue
+    const p = pool.reduce((a, b) => (overall(b) > overall(a) ? b : a))
+    s = movePlayer(s, p.id, clubId, { fee: 0, wage: wageDemand(s, p.id, clubId), contractEnd: s.season })
   }
   return s
 }
@@ -133,21 +156,22 @@ export function transferWeek(state: GameState, rng: Rng): GameState {
     ...state,
     transfers: { ...state.transfers, agreed: {}, blocked: [], offers: open ? state.transfers.offers.filter((o) => o.expires >= state.matchday) : [] },
   }
-  if (!open && state.career.kind === 'sacked') return start
-  if (!open) return addNews(start, reminders(start), rng)
-  const traded = aiDeals(start, rng)
+  if (!open) {
+    const s = state.matchday <= LAST_MATCHDAY ? emergencySignings(start, rng) : start
+    return addNews(s, [...(state.career.kind === 'sacked' ? [] : reminders(s)), ...dealNews(start, s)], rng)
+  }
+  const traded = aiDeals(aiListings(start), rng)
   if (state.career.kind === 'sacked') return addNews(traded, dealNews(start, traded), rng)
   const s = newOffers(traded, rng)
   return addNews(s, [...offerNews(start, s), ...reminders(s), ...rumour(s, rng), ...dealNews(start, s)], rng)
 }
 
-const AI_RENEW_CHANCE = 0.85
 const FREE_AGENT_CAP = 40
 const REFILL_SIZE = 20
 const REFILL_SHAPE: Record<Position, number> = { GK: 2, DF: 7, MF: 7, FW: 4 }
 
 /**
- * Contracts that end with this season. The user's players leave; AI clubs renew most of theirs.
+ * Contracts that end with this season. The user's players leave; AI managers decide about theirs.
  * A sacked manager's club is run like an AI club. `left` = players the user has lost.
  */
 export function expireContracts(state: GameState, rng: Rng): { state: GameState; left: Player[] } {
@@ -155,9 +179,9 @@ export function expireContracts(state: GameState, rng: Rng): { state: GameState;
   const left: Player[] = []
   for (const p of Object.values(state.players)) {
     if (p.clubId === FREE_AGENT || p.contractEnd > state.season) { players[p.id] = p; continue }
-    const isUsers = state.career.kind === 'employed' && p.clubId === state.userClubId
-    if (!isUsers && rng.chance(AI_RENEW_CHANCE)) {
-      players[p.id] = { ...p, contractEnd: state.season + rng.int(1, 3) }
+    const isUsers = !isAiRun(state, p.clubId)
+    if (!isUsers && aiRenews(state, p, rng)) {
+      players[p.id] = { ...p, wage: wageFor(p, state.clubs[p.clubId]), contractEnd: state.season + rng.int(1, Math.min(3, maxYears(p))) }
       continue
     }
     if (isUsers) left.push(p)

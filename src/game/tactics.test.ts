@@ -1,8 +1,8 @@
-import { FORMATIONS, pickBestLineup, teamStrength, isAvailable } from './tactics'
-import { generatePlayer, generateSquad } from './generate'
+import { FORMATIONS, pickBestLineup, slotRoles, teamStrength, isAvailable } from './tactics'
+import { generatePlayer, generateSquad, newGame } from './generate'
 import { createRng } from './rng'
 import { CLUBS } from './data/clubs'
-import type { Player } from './types'
+import type { FormationId, Player } from './types'
 
 const rng = createRng(5)
 const squad = generateSquad(rng, CLUBS[0])
@@ -107,4 +107,19 @@ test('dropFromTactics replaces only the departed player', async () => {
   expect([...next.lineup, ...next.subs]).not.toContain(gone)
   t.lineup.forEach((id, i) => { if (i !== 5) expect(next.lineup[i]).toBe(id) })
   expect(dropFromTactics(t, 'nobody', rest)).toBe(t)
+})
+
+test('outstanding strikers play up front, not in goal or defence', () => {
+  const g = newGame(6, 'kapar')
+  const mates = Object.values(g.players).filter((p) => p.clubId === 'klang').map((p) => ({
+    ...p, fitness: 100, morale: 70,
+    attrs: Object.fromEntries(Object.keys(p.attrs).map((k) => [k, p.position === 'FW' ? 18 : 12])) as typeof p.attrs,
+  }))
+  const byId = new Map(mates.map((p) => [p.id, p]))
+  for (const f of Object.keys(FORMATIONS) as FormationId[]) {
+    const roles = slotRoles(f)
+    const { lineup } = pickBestLineup(mates, f)
+    expect(new Set(lineup).size).toBe(11)
+    lineup.forEach((id, i) => { if (roles[i] === 'FW') expect(byId.get(id)!.position).toBe('FW') })
+  }
 })

@@ -1,7 +1,7 @@
 import type { FormationId, Style, Tactics } from '../types'
 
 export type Side = 'home' | 'away'
-export type EventType = 'kickoff' | 'chance' | 'goal' | 'save' | 'miss' | 'yellow' | 'red' | 'injury' | 'sub' | 'halftime' | 'fulltime'
+export type EventType = 'kickoff' | 'chance' | 'goal' | 'save' | 'miss' | 'yellow' | 'red' | 'injury' | 'sub' | 'push' | 'protect' | 'halftime' | 'fulltime'
 
 export interface MatchEvent {
   minute: number
@@ -12,6 +12,9 @@ export interface MatchEvent {
   subOnId?: string
   highlight: boolean
 }
+
+/** An AI manager's leanings, each 0..1. */
+export interface MatchManager { attack: number; bold: number; youth: number }
 
 export interface LiveTeam {
   clubId: string
@@ -37,6 +40,8 @@ export interface MatchState {
   /** minutes each side has had the ball */
   possession: Record<Side, number>
   sharpness?: Sharpness
+  /** sides run by an AI manager */
+  managers?: Partial<Record<Side, MatchManager>>
 }
 
 export type TeamChange =
@@ -49,4 +54,5 @@ export type Sharpness = Partial<Record<Side, { attack: number; defence: number }
 export interface MatchOptions {
   homeBoost?: number
   sharpness?: Sharpness
+  managers?: Partial<Record<Side, MatchManager>>
 }

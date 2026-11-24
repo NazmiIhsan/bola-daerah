@@ -128,6 +128,7 @@ export const ms: Partial<Record<I18nKey, string>> = {
   'nav.settings': 'Tetapan',
   'dashboard.season': 'Musim {season}',
   'dashboard.nextMatch': 'Perlawanan seterusnya',
+  'dashboard.expected': 'Jangkaan {club}: {formation} · {style}',
   'dashboard.bye': 'Tiada perlawanan minggu ini. Pasukan anda berehat.',
   'dashboard.position': 'Kedudukan liga',
   'dashboard.lastResults': 'Keputusan terkini',

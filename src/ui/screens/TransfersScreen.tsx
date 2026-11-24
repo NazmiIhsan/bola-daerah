@@ -61,12 +61,12 @@ function Market({ state, onOpen }: { state: GameState; onOpen(id: string): void 
       {found.length === 0 ? <p>{t('transfers.none')}</p> : (
         <div className="market-list">
           {found.slice(0, ROWS).map(({ p, name, ovr, value }) => (
-            <button key={p.id} className="market-row" aria-label={t('transfers.view', { player: name })} onClick={() => onOpen(p.id)}>
+            <button key={p.id} className="market-row" aria-label={t('transfers.view', { player: name })} aria-describedby={p.listed ? `listed-${p.id}` : undefined} onClick={() => onOpen(p.id)}>
               <Avatar face={playerFace(p, state.clubs)} size={36} />
               <span className={`pos ${p.position}`}>{t(`pos.${p.position}`)}</span>
               <span className="market-main">
                 <span className="market-name">{name}</span>
-                <span className="muted small">{p.clubId === FREE_AGENT ? t('transfers.freeAgent') : <ClubLabel state={state} id={p.clubId} />} · {t('transfers.ageShort', { n: p.age })}</span>
+                <span className="muted small">{p.clubId === FREE_AGENT ? t('transfers.freeAgent') : <ClubLabel state={state} id={p.clubId} />} · {t('transfers.ageShort', { n: p.age })}{p.listed && <span id={`listed-${p.id}`} className="tag listed">{t('transfers.listed')}</span>}</span>
               </span>
               <span className="market-value small">{p.clubId === FREE_AGENT ? '' : formatRM(value)}</span>
               <strong className="ovr">{Math.round(ovr)}</strong>
