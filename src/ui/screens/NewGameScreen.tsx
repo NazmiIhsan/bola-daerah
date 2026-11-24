@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Icon } from '../components/Icon'
+import { Crest } from '../components/Crest'
 import { useT } from '../LanguageContext'
 import { CLUBS } from '../../game/data/clubs'
 import { SLOTS } from '../../save/storage'
 import type { GameApi } from '../useGame'
-import { Stars, Kit } from '../components/bits'
+import { Stars } from '../components/bits'
 
 export function NewGameScreen({ game, onBack }: { game: GameApi; onBack(): void }) {
   const { t } = useT()
@@ -28,7 +29,7 @@ export function NewGameScreen({ game, onBack }: { game: GameApi; onBack(): void 
           <div className="club-grid">
             {g.clubs.map((c) => (
               <button key={c.id} className={`club-card ${clubId === c.id ? 'selected' : ''}`} aria-pressed={clubId === c.id} onClick={() => setClubId(c.id)}>
-                <Kit colors={c.colors} />
+                <Crest club={c} size={52} />
                 <span className="club-name">{c.name}</span>
                 <span className="muted small">{c.district}</span>
                 <Stars value={c.reputation} />

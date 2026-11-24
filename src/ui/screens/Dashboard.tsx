@@ -1,37 +1,59 @@
 import { useT } from '../LanguageContext'
-import { computeTable } from '../../game/table'
+import { homeAlerts } from '../../game/alerts'
+import { computeTable, formOf, type Result } from '../../game/table'
 import { isSeasonOver, userFixture } from '../../game/season'
 import type { GameApi } from '../useGame'
 import { ClubLabel } from '../components/bits'
-import { newsText } from '../../i18n'
+import { Crest } from '../components/Crest'
+import { Icon } from '../components/Icon'
+import type { Tab } from '../components/Nav'
+import { newsText, ordinal } from '../../i18n'
 
-export function Dashboard({ game, onPlayMatch }: { game: GameApi; onPlayMatch(): void }) {
+const AROUND = 5
+
+function Pill({ r }: { r: Result }) {
+  const { t } = useT()
+  return <span className={`pill ${r}`}>{t(`result.${r}`)}</span>
+}
+
+export function Dashboard({ game, onPlayMatch, onGo }: { game: GameApi; onPlayMatch(): void; onGo(tab: Tab): void }) {
   const { t, lang } = useT()
   const s = game.state!
   const me = s.userClubId
   const div = s.divisions.find((d) => d.clubIds.includes(me))!
-  const table = computeTable(div.clubIds, s.fixtures.filter((f) => f.division === div.id))
+  const fixtures = s.fixtures.filter((f) => f.division === div.id)
+  const table = computeTable(div.clubIds, fixtures)
   const pos = table.findIndex((r) => r.clubId === me) + 1
+  const from = Math.max(0, Math.min(table.length - AROUND, pos - 1 - Math.floor(AROUND / 2)))
   const next = userFixture(s)
   const over = isSeasonOver(s)
-  const recent = s.fixtures
+  const alerts = homeAlerts(s)
+  const recent = fixtures
     .filter((f) => f.result && (f.homeId === me || f.awayId === me))
     .sort((a, b) => b.round - a.round)
     .slice(0, 5)
 
+  const team = (id: string) => {
+    const form = formOf(id, fixtures)
+    return (
+      <div className={`next-team ${id === me ? 'me' : ''}`}>
+        <Crest club={s.clubs[id]} size={56} />
+        <strong>{s.clubs[id].name}</strong>
+        <span className="muted small">{ordinal(lang, table.findIndex((r) => r.clubId === id) + 1)}</span>
+        {form.length > 0 && <span className="form" role="img" aria-label={t('dashboard.form', { form: form.map((r) => t(`result.${r}`)).join(' ') })}>{form.map((r, i) => <Pill key={i} r={r} />)}</span>}
+      </div>
+    )
+  }
+
   return (
     <div className="dash">
-      <section className="card next">
+      <section className="card next" role="region" aria-label={over ? t('dashboard.seasonOver') : t('dashboard.nextMatch')}>
         <h2>{over ? t('dashboard.seasonOver') : t('dashboard.nextMatch')}</h2>
         {over ? (
           <button className="primary big" onClick={() => game.continueDay()}>{t('dashboard.nextSeason')}</button>
         ) : next ? (
           <>
-            <div className="fixture-big">
-              <ClubLabel state={s} id={next.homeId} />
-              <span className="vs">{t('common.vs')}</span>
-              <ClubLabel state={s} id={next.awayId} />
-            </div>
+            <div className="next-teams">{team(next.homeId)}<span className="vs">{t('common.vs')}</span>{team(next.awayId)}</div>
             <p className="muted">{next.homeId === me ? t('common.home') : t('common.away')} · {s.clubs[next.homeId].stadium}</p>
             <button className="primary big" onClick={onPlayMatch}>{t('dashboard.playMatch')}</button>
           </>
@@ -42,11 +64,34 @@ export function Dashboard({ game, onPlayMatch }: { game: GameApi; onPlayMatch():
           </>
         )}
       </section>
-      <section className="card">
-        <h2>{t('dashboard.position')}</h2>
-        <p className="big-number">{pos}<span className="muted small"> / {table.length}</span></p>
-        <p className="muted">{t('common.division', { n: div.id })} · {table[pos - 1].points} {t('table.pts')}</p>
+
+      {alerts.length > 0 && (
+        <section className="card" role="region" aria-label={t('dashboard.todo')}>
+          <h2>{t('dashboard.todo')}</h2>
+          <ul className="todo">
+            {alerts.map((a) => (
+              <li key={a.key}><button onClick={() => onGo(a.tab)}><Icon name="alert" /> <span>{t(`alert.${a.key}`, { n: a.n })}</span></button></li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="card" role="region" aria-label={t('dashboard.position')}>
+        <h2>{t('dashboard.position')} <span className="muted small">{t('common.division', { n: div.id })}</span></h2>
+        <table className="mini">
+          <tbody>
+            {table.slice(from, from + AROUND).map((r, i) => (
+              <tr key={r.clubId} className={r.clubId === me ? 'me' : ''}>
+                <td>{from + i + 1}</td>
+                <td className="left"><ClubLabel state={s} id={r.clubId} /></td>
+                <td>{r.gd > 0 ? `+${r.gd}` : r.gd}</td>
+                <td><strong>{r.points}</strong> <span className="muted small">{t('table.pts')}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </section>
+
       <section className="card mood">
         <div className="sbar">
           <span className="small">{t('dashboard.fans')}</span>
@@ -59,6 +104,7 @@ export function Dashboard({ game, onPlayMatch }: { game: GameApi; onPlayMatch():
           <strong className="small">{s.board.confidence}</strong>
         </div>
       </section>
+
       {s.inbox.length > 0 && (
         <section className="card" role="region" aria-label={t('dashboard.news')}>
           <h2>{t('dashboard.news')}</h2>
@@ -67,23 +113,19 @@ export function Dashboard({ game, onPlayMatch }: { game: GameApi; onPlayMatch():
           </ul>
         </section>
       )}
+
       <section className="card">
         <h2>{t('dashboard.lastResults')}</h2>
         {recent.length === 0 ? (
           <p className="muted">{t('dashboard.noResults')}</p>
         ) : (
           <ul className="results">
-            {recent.map((f) => {
-              const mine = f.homeId === me ? f.result!.home : f.result!.away
-              const theirs = f.homeId === me ? f.result!.away : f.result!.home
-              const res = mine > theirs ? 'W' : mine === theirs ? 'D' : 'L'
-              return (
-                <li key={f.id}>
-                  <span className={`pill ${res}`}>{res}</span>
-                  <ClubLabel state={s} id={f.homeId} short /> <strong>{f.result!.home}–{f.result!.away}</strong> <ClubLabel state={s} id={f.awayId} short />
-                </li>
-              )
-            })}
+            {recent.map((f) => (
+              <li key={f.id}>
+                <Pill r={formOf(me, [f])[0]} />
+                <ClubLabel state={s} id={f.homeId} short /> <strong>{f.result!.home}–{f.result!.away}</strong> <ClubLabel state={s} id={f.awayId} short />
+              </li>
+            ))}
           </ul>
         )}
       </section>

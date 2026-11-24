@@ -20,7 +20,7 @@ import { unreadCount } from '../game/news'
 import { Nav, type Tab } from './components/Nav'
 import { SeasonSummary } from './components/SeasonSummary'
 import { YouthScreen } from './screens/YouthScreen'
-import { Kit } from './components/bits'
+import { Crest } from './components/Crest'
 import { isSeasonOver } from '../game/season'
 
 function GameShell({ game }: { game: GameApi }) {
@@ -33,7 +33,7 @@ function GameShell({ game }: { game: GameApi }) {
   return (
     <div className="shell">
       <header className="topbar" role="banner" style={{ borderColor: club.colors[0] }}>
-        <Kit colors={club.colors} size={32} />
+        <Crest club={club} size={36} />
         <div>
           <div className="club-title">{club.name}</div>
           <div className="muted small">
@@ -64,7 +64,7 @@ function GameShell({ game }: { game: GameApi }) {
       ) : (<>
       <Nav tab={tab} onTab={setTab} badges={{ transfers: s.transfers.offers.length, youth: s.youth.intake.length, inbox: unreadCount(s) }} />
       <main className="content">
-        {tab === 'home' && <Dashboard game={game} onPlayMatch={() => { const ns = game.beginMatch(); if (ns && !ns.press) setInMatch(true) }} />}
+        {tab === 'home' && <Dashboard game={game} onGo={setTab} onPlayMatch={() => { const ns = game.beginMatch(); if (ns && !ns.press) setInMatch(true) }} />}
         {tab === 'inbox' && <InboxScreen state={s} onRead={game.markRead} onReadAll={game.markAllRead} />}
         {tab === 'club' && <ClubScreen state={s} />}
         {tab === 'squad' && <SquadScreen state={s} actions={game.transfers} />}

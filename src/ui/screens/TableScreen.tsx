@@ -3,6 +3,8 @@ import { computeTable } from '../../game/table'
 import type { GameState } from '../../game/types'
 import { ClubLabel } from '../components/bits'
 
+const HEADS = ['p', 'w', 'd', 'l', 'gd', 'pts'] as const
+
 export function TableScreen({ state }: { state: GameState }) {
   const { t } = useT()
   return (
@@ -15,7 +17,7 @@ export function TableScreen({ state }: { state: GameState }) {
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>#</th><th className="left">{t('table.club')}</th><th>{t('table.p')}</th><th>{t('table.w')}</th><th>{t('table.d')}</th><th>{t('table.l')}</th><th>{t('table.gd')}</th><th>{t('table.pts')}</th></tr>
+                  <tr><th>#</th><th className="left">{t('table.club')}</th>{HEADS.map((h) => <th key={h} className={`c-${h}`}><abbr title={t(`table.${h}.full`)}>{t(`table.${h}`)}</abbr></th>)}</tr>
                 </thead>
                 <tbody>
                   {rows.map((r, i) => {
@@ -24,7 +26,7 @@ export function TableScreen({ state }: { state: GameState }) {
                       <tr key={r.clubId} className={`${zone} ${r.clubId === state.userClubId ? 'me' : ''}`}>
                         <td>{i + 1}</td>
                         <td className="left"><ClubLabel state={state} id={r.clubId} /></td>
-                        <td>{r.played}</td><td>{r.won}</td><td>{r.drawn}</td><td>{r.lost}</td>
+                        <td>{r.played}</td><td className="c-w">{r.won}</td><td className="c-d">{r.drawn}</td><td className="c-l">{r.lost}</td>
                         <td>{r.gd > 0 ? `+${r.gd}` : r.gd}</td>
                         <td><strong>{r.points}</strong></td>
                       </tr>

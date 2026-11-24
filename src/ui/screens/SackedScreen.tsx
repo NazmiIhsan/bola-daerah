@@ -1,6 +1,7 @@
 import { Icon } from '../components/Icon'
+import { Crest } from '../components/Crest'
 import { useT } from '../LanguageContext'
-import { Kit, Stars } from '../components/bits'
+import { Stars } from '../components/bits'
 import type { GameState } from '../../game/types'
 
 export function SackedScreen({ state, onTakeJob, onNewGame }: { state: GameState; onTakeJob(id: string): void; onNewGame(): void }) {
@@ -17,7 +18,7 @@ export function SackedScreen({ state, onTakeJob, onNewGame }: { state: GameState
           const c = state.clubs[id]
           return (
             <button key={id} className="club-card" onClick={() => onTakeJob(id)}>
-              <Kit colors={c.colors} />
+              <Crest club={c} size={36} />
               <span className="club-name">{c.name}</span>
               <span className="muted small">{t('common.division', { n: div(id) })}</span>
               <Stars value={c.reputation} />

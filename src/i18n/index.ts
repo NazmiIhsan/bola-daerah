@@ -27,6 +27,13 @@ export function createT(dicts: Dicts) {
 
 export const t = createT({ en, ms })
 
+/** 1st, 2nd, 11th… in English; ke-1, ke-2… in Malay. */
+export function ordinal(lang: Lang, n: number): string {
+  if (lang === 'ms') return `ke-${n}`
+  const teen = n % 100 >= 11 && n % 100 <= 13
+  return `${n}${teen ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`
+}
+
 export function commentary(
   lang: Lang,
   event: MatchEvent,

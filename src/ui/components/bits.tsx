@@ -2,6 +2,7 @@ import { useT } from '../LanguageContext'
 import { overall } from '../../game/generate'
 import { scoutRange } from '../../game/youth'
 import type { GameState, Player } from '../../game/types'
+import { Crest } from './Crest'
 import { Icon } from './Icon'
 
 /** Star rating in halves, 0..5. Decorative unless labelled by the caller. */
@@ -53,7 +54,7 @@ export function ClubLabel({ state, id, short }: { state: GameState; id: string; 
   const c = state.clubs[id]
   return (
     <span className={`club-label ${id === state.userClubId ? 'me' : ''}`}>
-      <Kit colors={c.colors} size={18} /> {short ? c.shortName : c.name}
+      <Crest club={c} size={20} /> {short ? c.shortName : c.name}
     </span>
   )
 }

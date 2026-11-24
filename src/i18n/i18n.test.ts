@@ -1,4 +1,4 @@
-import { t, commentary, createT } from './index'
+import { ordinal, t, commentary, createT } from './index'
 import { en } from './en'
 import { ms } from './ms'
 import { createRng } from '../game/rng'
@@ -100,4 +100,9 @@ describe('press templates', async () => {
     expect(at(997)).toBe(at(997 % 3))
     expect(at(0)).not.toBe(at(1))
   })
+})
+
+test('ordinals', () => {
+  expect([1, 2, 3, 4, 10, 11, 12, 13, 21].map((n) => ordinal('en', n))).toEqual(['1st', '2nd', '3rd', '4th', '10th', '11th', '12th', '13th', '21st'])
+  expect(ordinal('ms', 3)).toBe('ke-3')
 })

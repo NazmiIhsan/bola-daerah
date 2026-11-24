@@ -33,3 +33,17 @@ export function computeTable(clubIds: string[], fixtures: Fixture[]): TableRow[]
     (a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf || a.clubId.localeCompare(b.clubId),
   )
 }
+
+export type Result = 'W' | 'D' | 'L'
+
+/** Latest results, oldest first. */
+export function formOf(clubId: string, fixtures: Fixture[], n = 5): Result[] {
+  return fixtures
+    .filter((f) => f.result && (f.homeId === clubId || f.awayId === clubId))
+    .sort((a, b) => a.round - b.round)
+    .slice(-n)
+    .map((f) => {
+      const [mine, theirs] = f.homeId === clubId ? [f.result!.home, f.result!.away] : [f.result!.away, f.result!.home]
+      return mine > theirs ? 'W' : mine === theirs ? 'D' : 'L'
+    })
+}
