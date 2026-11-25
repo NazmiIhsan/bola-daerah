@@ -1,6 +1,6 @@
 import { createRng, type Rng } from '../rng'
 import { manage } from './bench'
-import { slotRoles, teamStrength } from '../tactics'
+import { contribution, slotRoles, teamStrength } from '../tactics'
 import type { Player, Position, Style, Tactics } from '../types'
 import type { LiveTeam, MatchEvent, MatchOptions, MatchState, Side, TeamChange } from './types'
 
@@ -71,6 +71,14 @@ function pickByRole(rng: Rng, team: LiveTeam, weights: Record<Position, number>,
 function removeFromPitch(team: LiveTeam, id: string) {
   const i = team.onPitch.indexOf(id)
   if (i >= 0) team.onPitch[i] = ''
+}
+
+/** The bench player who would do best in a slot. A goalkeeper covers an outfield slot only when nobody else is left. */
+function replacementFor(team: LiveTeam, slot: number, players: Record<string, Player>): string {
+  const role = slotRoles(team.tactics.formation)[slot]
+  const outfield = team.bench.filter((id) => players[id].position !== 'GK')
+  const options = role !== 'GK' && outfield.length ? outfield : team.bench
+  return options.reduce((a, b) => (contribution(players[b], role) > contribution(players[a], role) ? b : a))
 }
 
 export function stepMinute(state: MatchState, players: Record<string, Player>): MatchState {
@@ -157,7 +165,8 @@ export function stepMinute(state: MatchState, players: Record<string, Player>): 
         // automatic replacement if possible, else the slot stays empty
         const slot = team.onPitch.indexOf(id)
         if (team.subsUsed < 5 && team.bench.length > 0) {
-          const onId = team.bench.shift()!
+          const onId = replacementFor(team, slot, players)
+          team.bench = team.bench.filter((x) => x !== onId)
           team.onPitch[slot] = onId
           team.subsUsed++
           s.events.push({ minute, side, type: 'sub', playerId: id, subOnId: onId, highlight: false })
