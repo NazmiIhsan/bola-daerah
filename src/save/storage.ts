@@ -85,7 +85,7 @@ export function importSave(json: string): GameState {
   const d = data as Record<string, unknown>
   for (const [k, type] of SHAPE) if (typeof d[k] !== type || d[k] === null) throw new SaveError('wrong_shape')
   if (!Array.isArray(d.fixtures) || !Array.isArray(d.divisions)) throw new SaveError('wrong_shape')
-  if (d.version !== 1 && d.version !== 2 && d.version !== 3 && d.version !== 4) throw new SaveError('unsupported_version')
+  if (d.version !== 1 && d.version !== 2 && d.version !== 3 && d.version !== 4 && d.version !== 5) throw new SaveError('unsupported_version')
   const { app: _app, ...rest } = d
   const state = migrate(rest)
   if (!isConsistent(state)) throw new SaveError('wrong_shape')

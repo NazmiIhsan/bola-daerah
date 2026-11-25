@@ -75,7 +75,7 @@ test('every player has a wage, bigger clubs pay more', () => {
 })
 
 test('newGame initialises fans, board, finance, inbox and career', () => {
-  expect(g.version).toBe(4)
+  expect(g.version).toBe(5)
   expect(g.fans).toEqual({ mood: 60, log: [] })
   expect(g.career).toEqual({ kind: 'employed' })
   expect(g.inbox).toEqual([])
@@ -88,9 +88,9 @@ describe('contracts, budgets and free agents', async () => {
   const { budgetFor, wageBudgetFor } = await import('./generate')
   const { wageBill } = await import('./finance')
   const { FREE_AGENT } = await import('./types')
-  test('version 4 with contracts and 24 free agents', () => {
+  test('version 5 with contracts and 24 free agents', () => {
     const s = newGame(8, 'kapar')
-    expect(s.version).toBe(4)
+    expect(s.version).toBe(5)
     const all = Object.values(s.players)
     const free = all.filter((p) => p.clubId === FREE_AGENT)
     expect(free).toHaveLength(24)

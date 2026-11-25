@@ -34,6 +34,13 @@ export interface Player {
   listed?: boolean
   /** matches played this season */
   apps: number
+  /** this season */
+  goals: number
+  assists: number
+  /** sum of match ratings, for the average */
+  ratingSum: number
+  /** how many matches that sum covers */
+  rated: number
   /** overall when the season began */
   ovrStart: number
   /** the club whose academy produced the player */
@@ -77,7 +84,13 @@ export interface Fixture {
   homeId: string
   awayId: string
   result?: { home: number; away: number }
+  /** a cup tie shown as a fixture; `division` means nothing then */
+  cup?: boolean
 }
+
+export interface CupTie { id: string; homeId: string; awayId: string; result?: { home: number; away: number }; pens?: { home: number; away: number }; winnerId?: string }
+/** The last round is the one being played. `waiting` = clubs that enter in the next round. */
+export interface Cup { waiting: string[]; rounds: CupTie[][] }
 
 export interface Division {
   id: 1 | 2
@@ -85,7 +98,7 @@ export interface Division {
 }
 
 export interface GameState {
-  version: 4
+  version: 5
   seed: number
   rngState: number
   /** starts 2027 */
@@ -111,6 +124,21 @@ export interface GameState {
   training: TrainingFocus
   /** this season's academy candidates, waiting for the user's decision */
   youth: { intake: Player[] }
+  /** finished seasons, newest first */
+  history: SeasonRecord[]
+  /** null until the first full season after an older save was updated */
+  cup: Cup | null
+}
+
+export interface Award { name: string; clubId: string; value: number }
+export interface SeasonRecord {
+  season: number
+  /** division 1, division 2 */
+  champions: [string, string]
+  me: { clubId: string; division: 1 | 2; position: number; points: number }
+  goldenBoot: [Award | null, Award | null]
+  bestPlayer: [Award | null, Award | null]
+  cup: { winnerId: string; runnerUpId: string } | null
 }
 
 export type Expectation = 'title' | 'promotion' | 'topHalf' | 'midTable' | 'avoidRelegation'

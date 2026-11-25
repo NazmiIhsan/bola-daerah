@@ -1,5 +1,6 @@
 import { wageBill } from './finance'
 import { overall } from './generate'
+import { cupFixture } from './cup'
 import { canLeave, justJoined, squad } from './market'
 import type { MatchManager } from './match/types'
 import { createRng, type Rng } from './rng'
@@ -37,11 +38,11 @@ export function managerOf(state: Pick<GameState, 'seed'>, clubId: string): Manag
 const FAVOURITE = [0.12, 0.06]
 const KEEP = 0.015
 
-/** How good a team would be in a formation. Managers fear conceding more than they love scoring. */
+/** How good a team would be in a formation, weighing each line as the match engine does. */
 export function formationScore(players: Player[], formation: FormationId): number {
   const byId = new Map(players.map((p) => [p.id, p]))
   const s = teamStrength(pickBestLineup(players, formation).lineup.map((id) => byId.get(id)), formation)
-  return 1.25 * Math.log(Math.max(0.1, s.attack)) + 2 * Math.log(Math.max(0.1, s.defence)) + 0.9 * Math.log(Math.max(0.1, s.midfield))
+  return 1.6 * Math.log(Math.max(0.1, s.attack)) + 1.6 * Math.log(Math.max(0.1, s.defence)) + 2 * Math.log(Math.max(0.1, s.midfield))
 }
 
 /** The best fit for the players, leaning towards the manager's favourites and what the team already plays. */
@@ -72,7 +73,7 @@ function inTrouble(state: GameState, clubId: string): boolean {
 
 /** Attack-minded managers and favourites go for it; outsiders sit deep or hit on the break. */
 function aiStyle(state: GameState, clubId: string): Style {
-  const f = state.fixtures.find((x) => x.round === state.matchday && (x.homeId === clubId || x.awayId === clubId))
+  const f = cupFixture(state, clubId) ?? state.fixtures.find((x) => x.round === state.matchday && (x.homeId === clubId || x.awayId === clubId))
   if (!f) return state.tactics[clubId].style
   const m = managerOf(state, clubId)
   const gap = power(state, clubId) / Math.max(1, power(state, f.homeId === clubId ? f.awayId : f.homeId)) - 1

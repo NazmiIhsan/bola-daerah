@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useT } from '../LanguageContext'
 import { formatRM } from '../../game/finance'
 import { overall, POSITION_WEIGHTS } from '../../game/generate'
+import { averageRating } from '../../game/stats'
 import { maxYears, playerValue, transferWindow } from '../../game/market'
 import { fullName, type BidOutcome, type OfferOutcome, type TermsOutcome } from '../../game/transfers'
 import { Avatar } from '../avatars/Avatar'
@@ -99,6 +100,7 @@ export function PlayerDialog({ state, playerId, actions, onClose }: { state: Gam
           <dt>{t('transfers.value')}</dt><dd>{formatRM(playerValue(p, state.season))}</dd>
           <dt>{t('transfers.wage')}</dt><dd>{formatRM(p.wage)}</dd>
           {p.clubId !== FREE_AGENT && <><dt>{t('transfers.contract')}</dt><dd>{p.contractEnd}</dd></>}
+          {p.apps > 0 && <><dt>{t('stats.thisSeason')}</dt><dd>{t('stats.line', { apps: p.apps, goals: p.goals, assists: p.assists, rating: averageRating(p)?.toFixed(2) ?? '—' })}</dd></>}
         </dl>
         <ul className="attrs">
           {attrs.map((k) => (

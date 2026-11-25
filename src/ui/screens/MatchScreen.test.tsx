@@ -113,3 +113,14 @@ describe('live match view', () => {
     expect(minutes).toHaveLength(goals)
   })
 })
+
+test('the changes panel shows how much energy everyone has left', () => {
+  renderMatch()
+  fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+  const panel = screen.getByRole('region', { name: 'Team changes' })
+  for (const label of ['Take off', 'Bring on']) {
+    const options = [...(within(panel).getByLabelText(label) as HTMLSelectElement).options].filter((o) => o.value)
+    expect(options.length).toBeGreaterThan(0)
+    for (const o of options) expect(o.textContent).toMatch(/\d+%/)
+  }
+})

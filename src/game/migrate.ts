@@ -14,7 +14,8 @@ export function migrate(raw: Raw): GameState {
   if (s.version === 1) s = v1to2(s)
   if (s.version === 2) s = v2to3(s)
   if (s.version === 3) s = v3to4(s)
-  if (s.version !== 4) throw new SaveError('unsupported_version')
+  if (s.version === 4) s = v4to5(s)
+  if (s.version !== 5) throw new SaveError('unsupported_version')
   return s as unknown as GameState
 }
 
@@ -58,4 +59,12 @@ function v3to4(raw: Raw): Raw {
   const players: Record<string, Player> = {}
   for (const p of Object.values(s.players)) players[p.id] = { ...p, apps: 0, ovrStart: overall(p) }
   return { ...s, version: 4, players, form: rollForm(s, createRng(s.seed ^ FORM_SEED)), training: 'balanced', youth: { intake: [] } }
+}
+
+/** Goals, assists, ratings, club history and the cup, which starts with the next season. Goals scored before the update are lost. */
+function v4to5(raw: Raw): Raw {
+  const s = raw as unknown as Old
+  const fresh = (p: Player): Player => ({ ...p, goals: 0, assists: 0, ratingSum: 0, rated: 0 })
+  const players = Object.fromEntries(Object.entries(s.players).map(([id, p]) => [id, fresh(p)]))
+  return { ...s, version: 5, players, youth: { intake: s.youth.intake.map(fresh) }, history: [], cup: null }
 }

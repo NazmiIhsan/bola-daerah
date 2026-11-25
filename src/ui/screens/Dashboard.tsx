@@ -1,8 +1,11 @@
 import { useMemo } from 'react'
 import { useT } from '../LanguageContext'
+import { cupRoundName } from '../../game/cup'
 import { homeAlerts } from '../../game/alerts'
 import { computeTable, formOf, type Result } from '../../game/table'
 import { isSeasonOver, matchTactics, userFixture } from '../../game/season'
+import { matchup } from '../../game/tactics'
+import type { FormationId } from '../../game/types'
 import type { GameApi } from '../useGame'
 import { ClubLabel } from '../components/bits'
 import { Crest } from '../components/Crest'
@@ -17,6 +20,12 @@ function Pill({ r }: { r: Result }) {
   return <span className={`pill ${r}`}>{t(`result.${r}`)}</span>
 }
 
+export function MatchupNote({ mine, theirs }: { mine: FormationId; theirs: FormationId }) {
+  const { t } = useT()
+  const key = { 1: 'good', 0: 'even', [-1]: 'bad' }[matchup(mine, theirs)]
+  return <p className="small">{t(`dashboard.matchup.${key}`, { mine, theirs })}</p>
+}
+
 export function Dashboard({ game, onPlayMatch, onGo }: { game: GameApi; onPlayMatch(): void; onGo(tab: Tab): void }) {
   const { t, lang } = useT()
   const s = game.state!
@@ -28,7 +37,8 @@ export function Dashboard({ game, onPlayMatch, onGo }: { game: GameApi; onPlayMa
   const from = Math.max(0, Math.min(table.length - AROUND, pos - 1 - Math.floor(AROUND / 2)))
   const next = userFixture(s)
   const rival = next && (next.homeId === me ? next.awayId : next.homeId)
-  const plan = useMemo(() => (rival ? matchTactics(s)[rival] : null), [s, rival])
+  const plans = useMemo(() => (rival ? matchTactics(s) : null), [s, rival])
+  const plan = rival && plans?.[rival]
   const over = isSeasonOver(s)
   const alerts = homeAlerts(s)
   const recent = fixtures
@@ -38,11 +48,12 @@ export function Dashboard({ game, onPlayMatch, onGo }: { game: GameApi; onPlayMa
 
   const team = (id: string) => {
     const form = formOf(id, fixtures)
+    const place = table.findIndex((r) => r.clubId === id) + 1
     return (
       <div className={`next-team ${id === me ? 'me' : ''}`}>
         <Crest club={s.clubs[id]} size={56} />
         <strong>{s.clubs[id].name}</strong>
-        <span className="muted small">{ordinal(lang, table.findIndex((r) => r.clubId === id) + 1)}</span>
+        <span className="muted small">{place > 0 ? ordinal(lang, place) : t('common.division', { n: div.id === 1 ? 2 : 1 })}</span>
         {form.length > 0 && <span className="form" role="img" aria-label={t('dashboard.form', { form: form.map((r) => t(`result.${r}`)).join(' ') })}>{form.map((r, i) => <Pill key={i} r={r} />)}</span>}
       </div>
     )
@@ -56,9 +67,11 @@ export function Dashboard({ game, onPlayMatch, onGo }: { game: GameApi; onPlayMa
           <button className="primary big" onClick={() => game.continueDay()}>{t('dashboard.nextSeason')}</button>
         ) : next ? (
           <>
+            {next.cup && <p className="cup-tag"><Icon name="star" size={16} /> {t('cup.title')} · {t(`cup.round.${cupRoundName(s.cup!.rounds.length - 1)}`)}</p>}
             <div className="next-teams">{team(next.homeId)}<span className="vs">{t('common.vs')}</span>{team(next.awayId)}</div>
             <p className="muted">{next.homeId === me ? t('common.home') : t('common.away')} · {s.clubs[next.homeId].stadium}</p>
             {rival && plan && <p className="small">{t('dashboard.expected', { club: s.clubs[rival].name, formation: plan.formation, style: t(`style.${plan.style}`) })}</p>}
+            {plans && plan && <MatchupNote mine={plans[me].formation} theirs={plan.formation} />}
             <button className="primary big" onClick={onPlayMatch}>{t('dashboard.playMatch')}</button>
           </>
         ) : (

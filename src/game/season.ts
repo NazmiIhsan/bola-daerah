@@ -1,13 +1,17 @@
 import { createRng, type Rng } from './rng'
-import { overall } from './generate'
+import { advanceCup, cupDue, cupFixture, cupPrize, cupTieOf, newCup } from './cup'
+import { cupNews } from './cupNews'
+import { penalties } from './match/penalties'
+import { CUP_SEED, overall } from './generate'
 import { minutesPlayed } from './match/minutes'
+import { matchRatings } from './match/ratings'
 import { simulateFull } from './match/sim'
 import type { MatchOptions, MatchState } from './match/types'
 import { buildFixtures } from './schedule'
 import { computeTable } from './table'
 import { isAvailable, pickBestLineup } from './tactics'
-import type { Division, Fixture, GameState, Player, Tactics } from './types'
-import { applyWeek, attendance, prizeMoney } from './finance'
+import type { CupTie, Division, Fixture, GameState, Player, Tactics } from './types'
+import { applyWeek, attendance, divisionOf, prizeMoney, TICKET_PRICE } from './finance'
 import { applyReaction, expectationFor, resultReaction, seasonEndReaction, shouldSack, userPosition, weeklyBoardCheck } from './reactions'
 import { addNews, matchdayNews, seasonEndNews, seasonStartNews } from './news'
 import { maybePress } from './press'
@@ -16,6 +20,7 @@ import { developWeek } from './development'
 import { aiIntake, intakeNews, youthIntake, youthWeek } from './youth'
 import { darkHorseNews, moveReputations, rollForm, underdogNews } from './momentum'
 import { isRivalry } from './rivals'
+import { awardNews, seasonRecord } from './stats'
 import { sack, takeJob } from './career'
 import { departureNews, expireContracts, refillSquads, resetMarket, transferWeek, trimFreeAgents } from './transferWeek'
 
@@ -23,8 +28,9 @@ export const ROUNDS_PER_SEASON = 18
 export const RETIRE_AFTER_AGE = 35
 const FOCUS_EDGE = 1.02
 
+/** The user's next match: a cup tie when its round is due, else the league game. */
 export function userFixture(state: GameState): Fixture | undefined {
-  return state.fixtures.find(
+  return cupFixture(state, state.userClubId) ?? state.fixtures.find(
     (f) => f.round === state.matchday && (f.homeId === state.userClubId || f.awayId === state.userClubId),
   )
 }
@@ -51,8 +57,13 @@ function refreshTactics(state: GameState, clubId: string): Tactics {
 /** Mutates `players` (a copy owned by the caller) with cards, injuries and fatigue from one match. */
 function applyMatchEffects(players: Record<string, Player>, match: MatchState, rng: Rng) {
   const touch = (id: string) => (players[id] = { ...players[id] })
+  const ratings = matchRatings(match, players)
   for (const e of match.events) {
     if (!e.playerId || !players[e.playerId]) continue
+    if (e.type === 'goal') {
+      touch(e.playerId).goals += 1
+      if (e.assistId && players[e.assistId]) touch(e.assistId).assists += 1
+    }
     if (e.type === 'yellow') {
       const p = touch(e.playerId)
       p.yellowCards += 1
@@ -70,6 +81,10 @@ function applyMatchEffects(players: Record<string, Player>, match: MatchState, r
     if (!players[id]) continue
     const p = touch(id)
     p.apps += 1
+    if (ratings[id] !== undefined) {
+      p.ratingSum += ratings[id]
+      p.rated += 1
+    }
     p.fitness = Math.max(0, p.fitness - ((30 - p.attrs.stamina) * minutes) / 90)
   }
 }
@@ -161,7 +176,7 @@ function rollOverSeason(ended: GameState): { state: GameState; left: Player[] } 
 
   const players: Record<string, Player> = {}
   for (const p of Object.values(state.players)) {
-    const aged = { ...p, age: p.age + 1, fitness: 100, yellowCards: 0, suspendedMatches: 0, apps: 0, ovrStart: overall(p) }
+    const aged = { ...p, age: p.age + 1, fitness: 100, yellowCards: 0, suspendedMatches: 0, apps: 0, goals: 0, assists: 0, ratingSum: 0, rated: 0, ovrStart: overall(p) }
     if (aged.age <= RETIRE_AFTER_AGE) players[aged.id] = aged
   }
 
@@ -174,6 +189,7 @@ function rollOverSeason(ended: GameState): { state: GameState; left: Player[] } 
     players,
     fixtures: buildFixtures(divisions),
   }
+  next = { ...next, cup: newCup(next, createRng((next.seed ^ CUP_SEED ^ Math.imul(next.season, 2654435761)) >>> 0)) }
   next = resetMarket(trimFreeAgents(refillSquads(aiIntake(next, rng), rng)))
   next = { ...next, form: rollForm(next, rng, champions), youth: { intake: next.career.kind === 'employed' ? youthIntake(rng, next, next.userClubId) : [] } }
   next = { ...next, rngState: rng.state() }
@@ -212,7 +228,7 @@ export function matchOptions(state: GameState, f: Pick<Fixture, 'homeId' | 'away
 export function preMatch(state: GameState): GameState {
   if (state.career.kind === 'sacked' || state.press) return state
   const f = userFixture(state)
-  if (!f) return state
+  if (!f || f.cup) return state
   const rng = createRng(state.rngState)
   const press = maybePress(state, 'pre', f, rng)
   return { ...state, press, rngState: rng.state() }
@@ -227,8 +243,56 @@ function adjustMorale(state: GameState, ids: string[], delta: number): GameState
   return { ...state, players }
 }
 
-export function playMatchday(state: GameState, userMatch?: MatchState): GameState {
-  if (isSeasonOver(state) || state.career.kind === 'sacked') return state
+const MIDWEEK_REST = 10
+
+/** Play the cup round that is due. The league matchday does not move. */
+function playCupRound(state: GameState, userMatch?: MatchState): GameState {
+  const me = state.userClubId
+  const round = state.cup!.rounds.length - 1
+  const tactics = matchTactics(state)
+  const players = { ...state.players }
+  const rng = createRng(state.rngState)
+  let mine: { tie: CupTie; match: MatchState } | undefined
+  const played = state.cup!.rounds[round].map((t): CupTie => {
+    const isMine = t.homeId === me || t.awayId === me
+    const match = isMine && userMatch ? userMatch : simulateFull(t.homeId, t.awayId, tactics, state.players, rng.int(1, 2 ** 31), matchOptions(state, t))
+    const pens = match.score.home === match.score.away ? penalties(match, state.players) : undefined
+    applyMatchEffects(players, match, rng)
+    const homeWon = pens ? pens.home > pens.away : match.score.home > match.score.away
+    const tie: CupTie = { ...t, result: { ...match.score }, ...(pens ? { pens } : {}), winnerId: homeWon ? t.homeId : t.awayId }
+    if (isMine) mine = { tie, match }
+    return tie
+  })
+  for (const p of Object.values(players)) players[p.id] = { ...p, fitness: Math.min(100, p.fitness + MIDWEEK_REST) }
+  let s: GameState = { ...state, press: null, players, cup: advanceCup(state, played, rng) }
+
+  if (mine) {
+    const { tie, match } = mine
+    const won = tie.winnerId === me, home = tie.homeId === me
+    const club = s.clubs[me]
+    const { position, size } = userPosition(state)
+    const crowd = home ? attendance(club, state.fans.mood, position, size, isRivalry(club, s.clubs[tie.awayId])) : undefined
+    const tickets = (crowd ?? 0) * TICKET_PRICE[divisionOf(state, me)]
+    const prize = won ? cupPrize(round) : 0
+    s = { ...s, finance: { ...s.finance, balance: s.finance.balance + tickets + prize, history: [{ season: s.season, matchday: s.matchday, tickets, sponsor: 0, prize, wages: 0, ...(crowd !== undefined ? { attendance: crowd } : {}) }, ...s.finance.history].slice(0, 40) } }
+    // Fans and players judge a shoot-out by who went through.
+    const score = tie.pens ? { home: tie.result!.home + (won === home ? 1 : 0), away: tie.result!.away + (won === home ? 0 : 1) } : tie.result!
+    s = applyReaction(s, resultReaction(s, { id: tie.id, division: 1, round: s.matchday, homeId: tie.homeId, awayId: tie.awayId, result: score, cup: true }))
+    s = adjustMorale(s, match[home ? 'home' : 'away'].tactics.lineup, won ? 5 : -5)
+  }
+  s = addNews(s, cupNews(state, s, played, round), rng)
+  return { ...s, rngState: rng.state() }
+}
+
+/** Rounds the user is not part of play themselves, so nobody has to wait for them. */
+function settleCup(state: GameState): GameState {
+  return cupDue(state) && !cupTieOf(state, state.userClubId) ? playCupRound(state) : state
+}
+
+export function playMatchday(given: GameState, userMatch?: MatchState): GameState {
+  if (isSeasonOver(given) || given.career.kind === 'sacked') return given
+  if (cupDue(given) && cupTieOf(given, given.userClubId)) return settleCup(playCupRound(given, userMatch))
+  const state = settleCup(given)
   const me = state.userClubId
   const before = { ...state, press: null }
   let s = simulateRound(before, userMatch)
@@ -263,7 +327,7 @@ export function playMatchday(state: GameState, userMatch?: MatchState): GameStat
   s = transferWeek(s, rng)
   // In-season rule only; the season-end verdict is endSeason's job.
   if (shouldSack({ ...s, matchday: Math.min(s.matchday, ROUNDS_PER_SEASON) })) s = sack(s, rng)
-  return { ...s, rngState: rng.state() }
+  return settleCup({ ...s, rngState: rng.state() })
 }
 
 export function endSeason(state: GameState): GameState {
@@ -274,7 +338,9 @@ export function endSeason(state: GameState): GameState {
     ended = { ...ended, finance: applyWeek(ended, { prize: prizeMoney(division, position) }) }
     ended = applyReaction(ended, seasonEndReaction(ended))
   }
-  ended = addNews(ended, [...underdogNews(ended), ...seasonEndNews(ended)], rng)
+  const record = seasonRecord(ended)
+  ended = addNews(ended, [...underdogNews(ended), ...seasonEndNews(ended), ...awardNews(record)], rng)
+  ended = { ...ended, history: [record, ...ended.history] }
   const sacked = ended.career.kind === 'employed' && shouldSack(ended)
   const rolled = rollOverSeason({ ...ended, rngState: rng.state() })
   let next = rolled.state

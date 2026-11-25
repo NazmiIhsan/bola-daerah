@@ -9,7 +9,7 @@ const FORM_MAX = 1.2
 const FORM_SPREAD = 0.055
 const DARK_HORSE = 1.12
 const TOP = 3
-const COMPLACENCY = 0.06
+const COMPLACENCY = 0.08
 const STUMBLE_MIN = 0.05
 const STUMBLE_MAX = 0.14
 

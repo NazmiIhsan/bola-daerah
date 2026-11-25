@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Dashboard } from './Dashboard'
+import { Dashboard, MatchupNote } from './Dashboard'
 import { LanguageProvider } from '../LanguageContext'
 import { newGame } from '../../game/generate'
 import { matchTactics, playMatchday, userFixture } from '../../game/season'
@@ -61,4 +61,19 @@ test('the opponent’s likely line-up is translated', () => {
   localStorage.setItem('bola-daerah.lang', 'ms')
   show(played(4))
   expect(screen.getByText(/^Jangkaan .+: \d(-\d)+ · (Menyerang|Seimbang|Bertahan|Serang balas)$/)).toBeInTheDocument()
+})
+
+test.each([
+  ['3-5-2', '4-4-2', /Your 3-5-2 troubles their 4-4-2/],
+  ['4-4-2', '3-5-2', /Their 3-5-2 troubles your 4-4-2/],
+  ['4-4-2', '4-4-2', /Formations are evenly matched/],
+] as const)('home says how %s does against %s', (mine, theirs, text) => {
+  render(<LanguageProvider><MatchupNote mine={mine} theirs={theirs} /></LanguageProvider>)
+  expect(screen.getByText(text)).toBeInTheDocument()
+})
+
+test('home shows the note for the real next match', () => {
+  const s = played(4)
+  show(s)
+  expect(within(screen.getByRole('region', { name: 'Next match' })).getByText(/troubles|evenly matched/)).toBeInTheDocument()
 })

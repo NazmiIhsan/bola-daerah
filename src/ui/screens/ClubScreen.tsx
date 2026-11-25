@@ -1,5 +1,7 @@
 import { useT } from '../LanguageContext'
 import { formatRM, wageBill } from '../../game/finance'
+import { honours } from '../../game/stats'
+import { ordinal } from '../../i18n'
 import { Icon, type IconName } from '../components/Icon'
 import type { GameState } from '../../game/types'
 
@@ -15,7 +17,8 @@ function Meter({ label, value, danger }: { label: string; value: number; danger?
 }
 
 export function ClubScreen({ state }: { state: GameState }) {
-  const { t } = useT()
+  const { t, lang } = useT()
+  const won = honours(state, state.userClubId)
   const me = state.userClubId
   const clubName = (id: unknown) => (typeof id === 'string' ? state.clubs[id]?.name ?? id : '')
   const reasonText = (key: string, params?: Record<string, string | number>) =>
@@ -47,6 +50,24 @@ export function ClubScreen({ state }: { state: GameState }) {
         <p className="muted small">{t('club.target', { pos: state.board.targetPosition })}</p>
         <div className="row"><Meter label={t('dashboard.board')} value={state.board.confidence} danger={state.board.confidence < 30} /><strong>{state.board.confidence}</strong></div>
         {state.board.confidence < 30 && <p className="banner error small">{t('club.boardWarning')}</p>}
+      </section>
+
+      <section className="card" role="region" aria-label={t('history.title')}>
+        <h2>{t('history.title')}</h2>
+        {won.division1 > 0 && <p><Icon name="star" size={16} /> {t('history.titles', { n: 1, count: won.division1 })}</p>}
+        {won.division2 > 0 && <p><Icon name="star" size={16} /> {t('history.titles', { n: 2, count: won.division2 })}</p>}
+        {won.cup > 0 && <p><Icon name="star" size={16} /> {t('history.cups', { count: won.cup })}</p>}
+        {state.history.length === 0 ? <p className="muted small">{t('history.none')}</p> : (
+          <ul className="seasons">
+            {state.history.map((r) => (
+              <li key={r.season}>
+                <strong>{r.season}</strong>
+                <span>{clubName(r.me.clubId)} · {t('common.division', { n: r.me.division })} · {ordinal(lang, r.me.position)} · {r.me.points} {t('table.pts')}</span>
+                <span className="muted small">{t('season.champions')}: {clubName(r.champions[0])}, {clubName(r.champions[1])}{r.cup && <> · {t('cup.title')}: {clubName(r.cup.winnerId)}</>}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="card">

@@ -17,6 +17,8 @@ export interface MatchEvent {
 export interface MatchManager { attack: number; bold: number; youth: number }
 
 export interface LiveTeam {
+  /** minute each substitute came on */
+  since?: Record<string, number>
   clubId: string
   tactics: Tactics
   /** slot-ordered (slot 0 = GK); '' = empty slot */

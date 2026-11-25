@@ -8,7 +8,7 @@ const fresh = () => newGame(11, 'kapar')
 const squadSize = (s: GameState, c: string) => Object.values(s.players).filter((p) => p.clubId === c).length
 
 function playSeason(s: GameState): GameState {
-  while (!isSeasonOver(s)) s = playMatchday(s)
+  while (!isSeasonOver(s)) s = playMatchday({ ...s, board: { ...s.board, confidence: 80 } })
   return s
 }
 

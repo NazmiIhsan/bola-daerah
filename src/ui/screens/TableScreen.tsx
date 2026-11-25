@@ -1,9 +1,32 @@
 import { useT } from '../LanguageContext'
 import { computeTable } from '../../game/table'
+import { topScorers } from '../../game/stats'
+import { fullName } from '../../game/transfers'
 import type { GameState } from '../../game/types'
 import { ClubLabel } from '../components/bits'
 
 const HEADS = ['p', 'w', 'd', 'l', 'gd', 'pts'] as const
+
+function Scorers({ state, division }: { state: GameState; division: 1 | 2 }) {
+  const { t } = useT()
+  const list = topScorers(state, division, 5)
+  return (
+    <section className="scorers-list" role="region" aria-label={t('stats.topScorersIn', { n: division })}>
+      <h3>{t('stats.topScorers')}</h3>
+      {list.length === 0 ? <p className="muted small">{t('stats.noGoals')}</p> : (
+        <ol>
+          {list.map((p) => (
+            <li key={p.id} className={p.clubId === state.userClubId ? 'me' : ''}>
+              <span className="grow">{fullName(p)}</span>
+              <span className="muted small"><ClubLabel state={state} id={p.clubId} short /></span>
+              <strong>{p.goals}</strong>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  )
+}
 
 export function TableScreen({ state }: { state: GameState }) {
   const { t } = useT()
@@ -38,6 +61,7 @@ export function TableScreen({ state }: { state: GameState }) {
             <p className="legend small">
               {d.id === 1 ? <><span className="swatch down" /> {t('table.relegation')}</> : <><span className="swatch up" /> {t('table.promotion')}</>}
             </p>
+            <Scorers state={state} division={d.id} />
           </section>
         )
       })}

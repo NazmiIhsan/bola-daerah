@@ -4,11 +4,21 @@ import { FREE_AGENT } from './types'
 
 type Raw = Record<string, unknown>
 
+/** A version 4 save: no goals, ratings or history. */
+export function makeV4(): Raw {
+  const s = JSON.parse(JSON.stringify(newGame(5, 'kapar')))
+  s.version = 4
+  for (const p of [...Object.values(s.players), ...s.youth.intake] as Raw[]) for (const k of ['goals', 'assists', 'ratingSum', 'rated']) delete p[k]
+  delete s.history
+  delete s.cup
+  return s
+}
+
 /** A Plan-3 (version 3) save: no appearances, youth or training. */
 export function makeV3(): Raw {
-  const s = JSON.parse(JSON.stringify(newGame(5, 'kapar')))
+  const s = makeV4() as Raw
   s.version = 3
-  for (const p of Object.values(s.players) as Raw[]) for (const k of ['apps', 'ovrStart', 'homeClubId', 'debuted']) delete p[k]
+  for (const p of Object.values(s.players as Raw) as Raw[]) for (const k of ['apps', 'ovrStart', 'homeClubId', 'debuted']) delete p[k]
   delete s.training
   delete s.youth
   return s

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useT } from '../LanguageContext'
-import { FORMATIONS, isAvailable, pickBestLineup, reslot, swapInTactics, teamStrength } from '../../game/tactics'
+import { FORMATIONS, isAvailable, pickBestLineup, reslot, swapInTactics, teamStrength, troubledBy, troubles } from '../../game/tactics'
 import { overall } from '../../game/generate'
 import type { FormationId, GameState, Player, Style, Tactics } from '../../game/types'
 import { FormationPitch } from '../components/FormationPitch'
@@ -66,6 +66,7 @@ export function TacticsScreen({ state, onChange }: { state: GameState; onChange(
             {(Object.keys(FORMATIONS) as FormationId[]).map((f) => <option key={f} value={f}>{f}</option>)}
           </select>
         </div>
+        <p className="small muted">{t('tactics.matchups', { good: troubles(tac.formation).join(', '), bad: troubledBy(tac.formation).join(', ') })}</p>
         <div className="row style-row" role="group" aria-label={t('tactics.style')}>
           {STYLES.map((s) => (
             <button key={s} className={tac.style === s ? 'primary' : ''} aria-pressed={tac.style === s} onClick={() => onChange({ ...tac, style: s })}>{t(`style.${s}`)}</button>

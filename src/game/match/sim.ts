@@ -1,12 +1,12 @@
 import { createRng, type Rng } from '../rng'
 import { manage } from './bench'
-import { contribution, slotRoles, teamStrength } from '../tactics'
+import { contribution, matchup, slotRoles, teamStrength } from '../tactics'
 import type { Player, Position, Style, Tactics } from '../types'
 import type { LiveTeam, MatchEvent, MatchOptions, MatchState, Side, TeamChange } from './types'
 
 /** Tuning constants (calibrated by balance.test.ts). */
 export const SIM = {
-  chanceBase: 0.12,
+  chanceBase: 0.116,
   chanceExponent: 1.6,
   homeAttack: 1.04,
   homePossession: 1.04,
@@ -23,6 +23,8 @@ const OWN: Record<Style, number> = { attacking: 1.25, balanced: 1, defensive: 0.
 /** How open a style leaves you to the opponent. */
 const OPEN: Record<Style, number> = { attacking: 1.2, balanced: 1, defensive: 0.72, counter: 0.95 }
 const COUNTER_VS_ATTACKING = 1.35
+/** How many more (or fewer) chances a formation creates against one it troubles (or that troubles it). */
+const MATCHUP_EDGE = 0.08
 
 const other = (s: Side): Side => (s === 'home' ? 'away' : 'home')
 
@@ -48,7 +50,7 @@ export function createMatch(homeId: string, awayId: string, tactics: Record<stri
 }
 
 function cloneTeam(t: LiveTeam): LiveTeam {
-  return { ...t, tactics: { ...t.tactics }, onPitch: [...t.onPitch], bench: [...t.bench], sentOff: [...t.sentOff] }
+  return { ...t, tactics: { ...t.tactics }, onPitch: [...t.onPitch], bench: [...t.bench], sentOff: [...t.sentOff], ...(t.since ? { since: { ...t.since } } : {}) }
 }
 
 /** Pick a player on the pitch, weighted by role. */
@@ -95,7 +97,7 @@ export function stepMinute(state: MatchState, players: Record<string, Player>): 
   }
   const minute = s.minute
   const strength = (side: Side) => {
-    const base = teamStrength(s[side].onPitch.map((id) => (id ? players[id] : undefined)), s[side].tactics.formation)
+    const base = teamStrength(s[side].onPitch.map((id) => (id ? players[id] : undefined)), s[side].tactics.formation, (p) => minute - (s[side].since?.[p.id] ?? 0))
     const edge = s.sharpness?.[side]
     return edge ? { ...base, attack: base.attack * edge.attack, defence: base.defence * edge.defence } : base
   }
@@ -111,9 +113,10 @@ export function stepMinute(state: MatchState, players: Record<string, Player>): 
   const dStyle = s[def].tactics.style
   let styleMod = OWN[aStyle] * OPEN[dStyle]
   if (aStyle === 'counter' && dStyle === 'attacking') styleMod *= COUNTER_VS_ATTACKING
+  const shapeMod = 1 + MATCHUP_EDGE * matchup(s[att].tactics.formation, s[def].tactics.formation)
   const homeMod = att === 'home' ? SIM.homeAttack * (s.homeBoost ?? 1) : 1
   const ratio = st[att].attack / Math.max(0.5, st[def].defence)
-  const pChance = Math.min(0.6, SIM.chanceBase * ratio ** SIM.chanceExponent * styleMod * homeMod)
+  const pChance = Math.min(0.6, SIM.chanceBase * ratio ** SIM.chanceExponent * styleMod * shapeMod * homeMod)
 
   if (rng.next() < pChance) {
     const shooterId = pickByRole(rng, s[att], { GK: 0, DF: 0.4, MF: 1.5, FW: 3 })
@@ -168,6 +171,7 @@ export function stepMinute(state: MatchState, players: Record<string, Player>): 
           const onId = replacementFor(team, slot, players)
           team.bench = team.bench.filter((x) => x !== onId)
           team.onPitch[slot] = onId
+          team.since = { ...team.since, [onId]: minute }
           team.subsUsed++
           s.events.push({ minute, side, type: 'sub', playerId: id, subOnId: onId, highlight: false })
         } else {
@@ -202,6 +206,7 @@ export function applyChange(state: MatchState, side: Side, change: TeamChange): 
     if (b < 0) throw new Error('Player is not on the bench')
     team.onPitch[slot] = change.onId
     team.bench.splice(b, 1)
+    team.since = { ...team.since, [change.onId]: state.minute }
     team.subsUsed++
     events.push({ minute: state.minute, side, type: 'sub', playerId: change.offId, subOnId: change.onId, highlight: false })
   } else {

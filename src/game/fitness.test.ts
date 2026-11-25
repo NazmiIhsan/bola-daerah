@@ -1,5 +1,6 @@
 import { newGame } from './generate'
 import { squad } from './market'
+import { energy } from './match/minutes'
 import { createMatch } from './match/sim'
 import type { MatchEvent, MatchState } from './match/types'
 import { applyResult, endSeason, isSeasonOver, matchTactics, playMatchday, userFixture } from './season'
@@ -61,4 +62,14 @@ test('everyone starts a new season fresh', () => {
   while (!isSeasonOver(s)) s = playMatchday({ ...s, press: null, board: { ...s.board, confidence: 80 } })
   expect(squad(s, 'kapar').some((p) => p.fitness < 100)).toBe(true)
   for (const p of Object.values(endSeason(s).players)) expect(p.fitness).toBe(100)
+})
+
+test('energy during a match falls with minutes, and a fresh substitute starts from his own fitness', () => {
+  const id = xi.lineup[5], on = xi.subs[0], p = base.players[id]
+  const m = createMatch(f.homeId, f.awayId, matchTactics(base), 1)
+  expect(energy(m[side], p, 0)).toBe(100)
+  expect(energy(m[side], p, 90)).toBeCloseTo(100 - cost(id))
+  const withSub = { ...m[side], since: { [on]: 60 } }
+  expect(energy(withSub, base.players[on], 60)).toBe(100)
+  expect(energy(withSub, base.players[on], 90)).toBeCloseTo(100 - cost(on) / 3)
 })

@@ -12,7 +12,7 @@ const POSITIONS: Position[] = ['GK', 'DF', 'MF', 'FW']
 /** A comfortable number per position; the intake favours whatever is furthest below it. */
 const IDEAL: Record<Position, number> = { GK: 3, DF: 8, MF: 8, FW: 4 }
 const CONTRACT_YEARS = 2
-export const YOUTH_TUNING = { below: 3.75, minGrowth: 1, maxGrowth: 5.1, goldenChance: 0.08, goldenBonus: 3 }
+export const YOUTH_TUNING = { below: 3.9, minGrowth: 1, maxGrowth: 5.1, goldenChance: 0.08, goldenBonus: 3 }
 
 export function generateYouth(rng: Rng, club: Club, position: Position, season: number, bonus = 0): Player {
   const p = generatePlayer(rng, club.id, position, squadQuality(club) - YOUTH_TUNING.below + bonus, rng.int(16, 18))

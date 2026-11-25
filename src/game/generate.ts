@@ -4,6 +4,7 @@ import * as N from './data/names'
 import { buildFixtures } from './schedule'
 import { pickBestLineup } from './tactics'
 import { rollForm } from './momentum'
+import { newCup } from './cup'
 import { youthIntake } from './youth'
 import { expectationFor } from './reactions'
 import { FREE_AGENT } from './types'
@@ -76,6 +77,10 @@ export function generatePlayer(rng: Rng, clubId: string, position: Position, qua
     wage: 0,
     contractEnd: 0,
     apps: 0,
+    goals: 0,
+    assists: 0,
+    ratingSum: 0,
+    rated: 0,
     ovrStart: 0,
   }
   const growth = Math.max(0, 24 - a) * 0.6
@@ -154,6 +159,7 @@ export function withContractsAndFreeAgents(players: Record<string, Player>, rng:
 
 export const FORM_SEED = 0x7a3d91c
 const YOUTH_SEED = 0x2f6e2b1
+export const CUP_SEED = 0x19c4e57
 export const CONTRACT_SEED = 0x51ed270b
 
 export function newGame(seed: number, userClubId: string): GameState {
@@ -173,7 +179,7 @@ export function newGame(seed: number, userClubId: string): GameState {
   ]
   const season = 2027
   const state: GameState = {
-    version: 4,
+    version: 5,
     seed,
     rngState: rng.state(),
     season,
@@ -194,7 +200,9 @@ export function newGame(seed: number, userClubId: string): GameState {
     form: {},
     training: 'balanced',
     youth: { intake: [] },
+    history: [],
+    cup: null,
   }
   const intake = youthIntake(createRng(seed ^ YOUTH_SEED), state, userClubId)
-  return { ...state, board: expectationFor(state), youth: { intake }, form: rollForm(state, createRng(seed ^ FORM_SEED)) }
+  return { ...state, board: expectationFor(state), youth: { intake }, form: rollForm(state, createRng(seed ^ FORM_SEED)), cup: newCup(state, createRng(seed ^ CUP_SEED)) }
 }

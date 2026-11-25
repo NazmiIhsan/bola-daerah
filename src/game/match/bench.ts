@@ -55,6 +55,7 @@ function substitutions(s: MatchState, side: Side, m: MatchManager, players: Reco
     const offId = team.onPitch[best.slot]
     team.onPitch[best.slot] = best.onId
     team.bench = team.bench.filter((id) => id !== best!.onId)
+    team.since = { ...team.since, [best.onId]: s.minute }
     team.subsUsed++
     cameOn.add(best.onId)
     s.events.push({ minute: s.minute, side, type: 'sub', playerId: offId, subOnId: best.onId, highlight: false })

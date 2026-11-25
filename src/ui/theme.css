@@ -424,3 +424,14 @@ abbr[title] { text-decoration: none; }
   .dash > .next, .dash > .league, .dash > .headlines-card { grid-column: 1; }
   .dash > .league { grid-row: span 2; }
 }
+
+/* Scorers and club history */
+.scorers-list ol, .seasons { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+.scorers-list li { display: flex; align-items: center; gap: .6rem; }
+.scorers-list li.me { font-weight: 700; }
+.scorers-list .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.seasons li { display: grid; gap: .1rem; padding-bottom: .35rem; border-bottom: 1px solid var(--line, color-mix(in srgb, currentColor 15%, transparent)); }
+.cup-tag { margin: 0; font-weight: 700; display: inline-flex; align-items: center; gap: .35rem; }
+.scorers-list { max-width: 460px; margin-top: .9rem; }
+.scorers-list h3, .card h3 { margin-top: .9rem; }
+.card.next p.small { margin: 0; }

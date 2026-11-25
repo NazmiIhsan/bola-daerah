@@ -10,6 +10,44 @@ export const FORMATIONS: Record<FormationId, { DF: number; MF: number; FW: numbe
   '4-5-1': { DF: 4, MF: 5, FW: 1 },
 }
 
+/** Fine tuning per formation, so that none is best with equal squads (formations.test.ts). */
+const SHAPE: Record<FormationId, { attack: number; defence: number }> = {
+  '4-4-2': { attack: 0.985, defence: 0.985 },
+  '4-3-3': { attack: 1.04, defence: 1.04 },
+  '4-2-3-1': { attack: 1.045, defence: 0.955 },
+  '3-5-2': { attack: 0.95, defence: 0.955 },
+  '5-3-2': { attack: 1.085, defence: 1.075 },
+  '4-5-1': { attack: 0.95, defence: 1.025 },
+}
+
+/** The formations each one troubles: an extra midfielder, wingers behind wing-backs, a spare centre-back and so on. */
+const TROUBLES: Record<FormationId, FormationId[]> = {
+  '4-4-2': ['4-3-3', '5-3-2'],
+  '4-3-3': ['3-5-2', '4-5-1'],
+  '4-2-3-1': ['4-4-2', '5-3-2'],
+  '3-5-2': ['4-4-2', '4-2-3-1'],
+  '5-3-2': ['4-3-3', '4-5-1'],
+  '4-5-1': ['3-5-2', '4-2-3-1'],
+}
+
+/** 1 when `mine` troubles `theirs`, -1 the other way round, 0 when they are even. */
+export function matchup(mine: FormationId, theirs: FormationId): -1 | 0 | 1 {
+  return TROUBLES[mine].includes(theirs) ? 1 : TROUBLES[theirs].includes(mine) ? -1 : 0
+}
+
+export const troubles = (f: FormationId): FormationId[] => TROUBLES[f]
+export const troubledBy = (f: FormationId): FormationId[] => (Object.keys(TROUBLES) as FormationId[]).filter((x) => TROUBLES[x].includes(f))
+
+const FRESH_MINUTES = 45
+const MAX_FADE = 0.15
+const TYPICAL_COST = 23
+
+/** How much of his ability a player still has after this many minutes on the pitch. Keepers don't tire. */
+export function legs(p: Player, minutes: number, role: Position): number {
+  if (role === 'GK') return 1
+  return 1 - (MAX_FADE * Math.max(0, minutes - FRESH_MINUTES) * (30 - p.attrs.stamina)) / (45 * TYPICAL_COST)
+}
+
 const ROLES: Position[] = ['GK', 'DF', 'MF', 'FW']
 
 export interface Strength {
@@ -83,18 +121,19 @@ export function pickBestLineup(squad: Player[], formation: FormationId): { lineu
  * (sent off or missing). Normalised by a 4-4-2 baseline so more defenders means
  * more defence, more forwards more attack.
  */
-export function teamStrength(players: (Player | undefined)[], formation: FormationId): Strength {
+export function teamStrength(players: (Player | undefined)[], formation: FormationId, minutes?: (p: Player) => number): Strength {
   const roles = slotRoles(formation)
+  const shape = SHAPE[formation]
   const sum: Record<Position, number> = { GK: 0, DF: 0, MF: 0, FW: 0 }
   roles.forEach((role, i) => {
     const p = players[i]
-    if (p) sum[role] += contribution(p, role)
+    if (p) sum[role] += contribution(p, role) * (minutes ? legs(p, minutes(p), role) : 1)
   })
   return {
     goalkeeping: sum.GK,
-    defence: (sum.DF + 0.3 * sum.MF + 0.1 * sum.FW) / 5.4,
+    defence: (shape.defence * (sum.DF + 0.3 * sum.MF + 0.1 * sum.FW)) / 5.4,
     midfield: (sum.MF + 0.25 * sum.FW + 0.15 * sum.DF) / 5.1,
-    attack: (sum.FW + 0.4 * sum.MF + 0.1 * sum.DF) / 4.0,
+    attack: (shape.attack * (sum.FW + 0.4 * sum.MF + 0.1 * sum.DF)) / 4.0,
   }
 }
 

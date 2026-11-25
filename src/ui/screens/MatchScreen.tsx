@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../LanguageContext'
 import { applyChange, createMatch, stepMinute } from '../../game/match/sim'
+import { energy } from '../../game/match/minutes'
+import { penalties } from '../../game/match/penalties'
+import { bestPlayer } from '../../game/match/ratings'
 import { scorers } from '../../game/match/stats'
 import type { MatchEvent, MatchState, Side } from '../../game/match/types'
 import { matchOptions, matchTactics, userFixture } from '../../game/season'
@@ -110,6 +113,9 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
   const pitchIds = mine.onPitch.filter(Boolean)
   const canSub = mine.subsUsed < 5 && !!offId && pitchIds.includes(offId) && benchIds.length > 0
   const chosenOn = benchIds.includes(onId) ? onId : benchIds[0] ?? ''
+  const left = (id: string) => `${Math.round(energy(mine, state.players[id], match.minute))}%`
+  const pens = fixture.cup && match.finished && match.score.home === match.score.away ? penalties(match, state.players) : null
+  const best = match.finished ? bestPlayer(match, state.players) : null
   const paused = !running && !match.finished
 
   return (
@@ -136,6 +142,8 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
             {match.finished ? (
               <>
                 <strong>{t('match.fulltime')}</strong>
+                {pens && <strong>{t('cup.shootout', { home: pens.home, away: pens.away })}</strong>}
+                {best && <span className="small">{t('stats.playerOfMatch', { player: name(best.playerId) ?? '', rating: best.rating.toFixed(1) })}</span>}
                 <button className="primary" onClick={() => onFinish(match)}>{t('match.done')}</button>
               </>
             ) : (
@@ -162,13 +170,13 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
                 <span className="small muted">{t('match.subOff')}</span>
                 <select aria-label={t('match.subOff')} value={offId} onChange={(e) => setOffId(e.target.value)}>
                   <option value="">—</option>
-                  {pitchIds.map((id) => <option key={id} value={id}>{name(id)} ({state.players[id].position})</option>)}
+                  {pitchIds.map((id) => <option key={id} value={id}>{name(id)} ({state.players[id].position}) {left(id)}</option>)}
                 </select>
               </label>
               <label className="field">
                 <span className="small muted">{t('match.subOn')}</span>
                 <select aria-label={t('match.subOn')} value={chosenOn} onChange={(e) => setOnId(e.target.value)}>
-                  {benchIds.map((id) => <option key={id} value={id}>{name(id)} ({state.players[id].position})</option>)}
+                  {benchIds.map((id) => <option key={id} value={id}>{name(id)} ({state.players[id].position}) {left(id)}</option>)}
                 </select>
               </label>
               <button disabled={!canSub} onClick={() => { change({ kind: 'sub', offId, onId: chosenOn }); setOffId(''); setOnId('') }}>{t('match.makeSub')}</button>

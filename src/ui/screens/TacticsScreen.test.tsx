@@ -81,3 +81,10 @@ test('strength bars update when lineup changes', async () => {
   await user.click(pitch.getByRole('button', { name: new RegExp(fullName(s, fw)) }))
   expect(attack()).not.toBe(before)
 })
+
+test('the tactics screen says what a formation is good and bad against', async () => {
+  const user = userEvent.setup()
+  render(<Harness initial={newGame(4, 'kapar')} />)
+  await user.selectOptions(screen.getByLabelText('Formation'), '3-5-2')
+  expect(screen.getByText('Strong against 4-4-2, 4-2-3-1. Weak against 4-3-3, 4-5-1.')).toBeInTheDocument()
+})
