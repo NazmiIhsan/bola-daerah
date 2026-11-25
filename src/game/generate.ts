@@ -19,10 +19,11 @@ export const POSITION_WEIGHTS: Record<Position, Partial<Record<AttrKey, number>>
   FW: { finishing: 0.35, pace: 0.2, composure: 0.15, dribbling: 0.15, strength: 0.1, passing: 0.05 },
 }
 
+const WEIGHT_LIST = Object.fromEntries(Object.entries(POSITION_WEIGHTS).map(([pos, w]) => [pos, Object.entries(w)])) as Record<Position, Array<[AttrKey, number]>>
+
 export function ratingAt(p: Player, position: Position): number {
-  const w = POSITION_WEIGHTS[position]
   let sum = 0
-  for (const k of Object.keys(w) as AttrKey[]) sum += p.attrs[k] * (w[k] ?? 0)
+  for (const [k, w] of WEIGHT_LIST[position]) sum += p.attrs[k] * w
   return sum
 }
 

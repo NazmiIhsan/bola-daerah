@@ -10,6 +10,8 @@ export const FORMATIONS: Record<FormationId, { DF: number; MF: number; FW: numbe
   '4-5-1': { DF: 4, MF: 5, FW: 1 },
 }
 
+const ROLES: Position[] = ['GK', 'DF', 'MF', 'FW']
+
 export interface Strength {
   attack: number
   midfield: number
@@ -39,32 +41,40 @@ export function contribution(p: Player, role: Position): number {
 export function pickBestLineup(squad: Player[], formation: FormationId): { lineup: string[]; subs: string[] } {
   const pool = squad.filter(isAvailable)
   const roles = slotRoles(formation)
-  const used = new Set<string>()
-  const pick: (Player | undefined)[] = roles.map(() => undefined)
+  // Each player is rated once per role: AI clubs try every formation every week, so this runs thousands of times a season.
+  const worth: Record<Position, number[]> = { GK: [], DF: [], MF: [], FW: [] }
+  for (const role of ROLES) worth[role] = pool.map((p) => contribution(p, role))
+  const used = pool.map(() => false)
+  const pick = roles.map(() => -1)
   const bestFree = (role: Position, natural: boolean) => {
-    const candidates = pool.filter((p) => !used.has(p.id) && (!natural || p.position === role))
-    return candidates.length ? candidates.reduce((a, b) => (contribution(b, role) > contribution(a, role) ? b : a)) : undefined
+    let best = -1
+    for (let i = 0; i < pool.length; i++) {
+      if (used[i] || (natural && pool[i].position !== role)) continue
+      if (best < 0 || worth[role][i] > worth[role][best]) best = i
+    }
+    return best
   }
   for (const natural of [true, false]) {
-    roles.forEach((role, i) => {
-      if (pick[i]) return
-      const p = bestFree(role, natural)
-      if (p) { pick[i] = p; used.add(p.id) }
+    roles.forEach((role, slot) => {
+      if (pick[slot] >= 0) return
+      const i = bestFree(role, natural)
+      if (i >= 0) { pick[slot] = i; used[i] = true }
     })
   }
-  roles.forEach((role, i) => {
-    const now = pick[i], cover = bestFree(role, false)
-    if (!now || !cover || contribution(cover, role) <= contribution(now, role)) return
-    used.delete(now.id)
-    used.add(cover.id)
-    pick[i] = cover
+  roles.forEach((role, slot) => {
+    const now = pick[slot], cover = bestFree(role, false)
+    if (now < 0 || cover < 0 || worth[role][cover] <= worth[role][now]) return
+    used[now] = false
+    used[cover] = true
+    pick[slot] = cover
   })
-  const lineup = pick.flatMap((p) => (p ? [p.id] : []))
+  const lineup = pick.filter((i) => i >= 0).map((i) => pool[i].id)
   const subs = pool
-    .filter((p) => !used.has(p.id))
-    .sort((a, b) => contribution(b, b.position) - contribution(a, a.position))
+    .map((p, i) => ({ id: p.id, used: used[i], worth: worth[p.position][i] }))
+    .filter((x) => !x.used)
+    .sort((a, b) => b.worth - a.worth)
     .slice(0, 7)
-    .map((p) => p.id)
+    .map((x) => x.id)
   return { lineup, subs }
 }
 
