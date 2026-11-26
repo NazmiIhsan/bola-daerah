@@ -14,6 +14,9 @@ import { MatchScreen } from './screens/MatchScreen'
 import { InboxScreen } from './screens/InboxScreen'
 import { ClubScreen } from './screens/ClubScreen'
 import { PressScreen } from './screens/PressScreen'
+import { ResultScreen } from './screens/ResultScreen'
+import type { MatchState } from '../game/match/types'
+import type { GameState } from '../game/types'
 import { TransfersScreen } from './screens/TransfersScreen'
 import { SackedScreen } from './screens/SackedScreen'
 import { unreadCount } from '../game/news'
@@ -21,12 +24,14 @@ import { Nav, type Tab } from './components/Nav'
 import { SeasonSummary } from './components/SeasonSummary'
 import { YouthScreen } from './screens/YouthScreen'
 import { Crest } from './components/Crest'
-import { isSeasonOver } from '../game/season'
+import { isSeasonOver, userFixture } from '../game/season'
 
 function GameShell({ game }: { game: GameApi }) {
   const { t } = useT()
   const [tab, setTab] = useState<Tab>('home')
   const [inMatch, setInMatch] = useState(false)
+  // The full-time summary, shown after the match and before the post-match press conference.
+  const [result, setResult] = useState<{ match: MatchState; before: GameState; cup: boolean } | null>(null)
   const s = game.state!
   const club = s.clubs[s.userClubId]
   const div = s.divisions.find((d) => d.clubIds.includes(s.userClubId))!.id
@@ -43,7 +48,11 @@ function GameShell({ game }: { game: GameApi }) {
         </div>
       </header>
       {!game.storageOk && <p className="banner warn">{t('storage.unavailable')}</p>}
-      {s.career.kind === 'sacked' ? (
+      {result ? (
+        <main className="content full">
+          <ResultScreen match={result.match} before={result.before} after={s} cup={result.cup} onContinue={() => setResult(null)} />
+        </main>
+      ) : s.career.kind === 'sacked' ? (
         <main className="content full">
           <SackedScreen state={s} onTakeJob={(id) => { game.takeJob(id); setTab('home') }} onNewGame={() => void game.quit()} />
         </main>
@@ -59,7 +68,7 @@ function GameShell({ game }: { game: GameApi }) {
         </main>
       ) : inMatch ? (
         <main className="content full">
-          <MatchScreen state={s} onFinish={(m) => { setInMatch(false); game.continueDay(m) }} />
+          <MatchScreen state={s} onFinish={(m) => { setResult({ match: m, before: s, cup: !!userFixture(s)?.cup }); setInMatch(false); game.continueDay(m) }} />
         </main>
       ) : (<>
       <Nav tab={tab} onTab={setTab} badges={{ transfers: s.transfers.offers.length, youth: s.youth.intake.length, inbox: unreadCount(s) }} />

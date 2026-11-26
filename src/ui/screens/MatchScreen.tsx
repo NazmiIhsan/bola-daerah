@@ -236,6 +236,12 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
               </>
             )}
           </div>
+          {/* On phones the commentary sits further down, so the latest moments show here. */}
+          <ol className="ticker" aria-hidden>
+            {feed.slice(0, 2).map(({ e, i }) => (
+              <li key={i} className={`ev ${e.type}`}><span className="min">{clockText(e.minute)}</span> <span>{line(e, i)}</span></li>
+            ))}
+          </ol>
           {!match.finished && (
             <div className="shouts" role="group" aria-label={t('match.shouts')}>
               <span className="small muted">{t('match.shouts')}</span>
@@ -249,6 +255,7 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
                   onClick={() => shout(sh)}
                 >{t(`match.shout.${sh}`)}</button>
               ))}
+              {!activeShout && !canShout(match, mySide, 'waste') && <span className="small muted shout-hint">{t('match.shout.wasteHint')}</span>}
               {activeShout && activeShout.until > match.minute && <span className="small" data-testid="shout-left">{t('match.shout.active', { shout: t(`match.shout.${activeShout.shout}`), n: activeShout.until - match.minute })}</span>}
             </div>
           )}
@@ -287,8 +294,8 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
             </section>
           )}
           <MatchStats events={events} possession={match.possession} colors={colors} />
-          <section className="card feed-card">
-            <ol className="feed" role="log" aria-live="polite">
+          <section className="card feed-card" role="log" tabIndex={0} aria-label={t('match.commentary')}>
+            <ol className="feed" aria-live="polite" aria-label={t('match.commentary')}>
               {feed.map(({ e, i }) => (
                 <li key={i} className={`ev ${e.type}`}>
                   <span className="min">{clockText(e.minute)}</span>

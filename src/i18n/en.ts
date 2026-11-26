@@ -384,6 +384,22 @@ export const en = {
   'assistant.notYet': 'Not yet',
   'assistant.leaveIt': 'Leave it',
   'assistant.keep': 'Keep it as it is',
+  'result.continue': 'Continue',
+  'result.win': 'Victory!',
+  'result.draw': 'A draw',
+  'result.loss': 'Defeat',
+  'result.pen': 'pen',
+  'result.scorers': '{club} scorers',
+  'result.ratings': 'Your players',
+  'result.motm': 'Player of the match',
+  'result.involvement': '{g} goals, {a} assists',
+  'result.assist': '1 assist',
+  'result.assists': '{n} assists',
+  'result.up': 'Up from {from} to {to} in the table',
+  'result.down': 'Down from {from} to {to} in the table',
+  'result.same': 'Still {pos} in the table',
+  'match.commentary': 'Commentary',
+  'match.shout.wasteHint': 'Waste time works only when you are winning.',
 } as const
 
 export type I18nKey = keyof typeof en

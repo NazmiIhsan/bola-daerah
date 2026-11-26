@@ -191,3 +191,17 @@ describe('touchline', () => {
     expect(screen.queryByRole('dialog', { name: 'Assistant' })).not.toBeInTheDocument()
   })
 })
+
+test('the latest commentary is repeated under the pitch for phones', () => {
+  renderMatch()
+  fireEvent.click(screen.getByRole('button', { name: 'Skip to end' }))
+  const ticker = document.querySelector('.ticker')!
+  expect(ticker.querySelectorAll('li')).toHaveLength(2)
+  expect(ticker.textContent).toMatch(/Full-time|all over|final whistle/)
+  expect(screen.getByRole('log', { name: 'Commentary' })).toHaveAttribute('tabindex', '0')
+})
+
+test('when time-wasting is not allowed, the reason is written out (phones have no tooltips)', () => {
+  renderMatch()
+  expect(screen.getByText('Waste time works only when you are winning.')).toBeInTheDocument()
+})
