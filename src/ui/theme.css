@@ -543,3 +543,41 @@ abbr[title] { text-decoration: none; }
 .pm-xi li { display: grid; grid-template-columns: auto 1fr auto; gap: .5rem; align-items: center; padding: .3rem 0; border-bottom: 1px solid var(--border); }
 .pm-bench { margin: 0; }
 @media (max-width: 800px) { .pm-grid { grid-template-columns: 1fr; } .pm-controls .primary.big { width: 100%; } }
+
+/* Start screen: matchday poster in Selangor red and yellow */
+.start.poster { position: relative; overflow: hidden; background: #ffd100; color: #111; align-items: stretch; padding: 0; }
+.poster-stripes { position: absolute; inset: 0; background: repeating-linear-gradient(-35deg, transparent 0 48px, #c8102e 48px 88px); clip-path: polygon(0 0, 100% 0, 100% 30%, 0 50%); }
+.start.poster .start-card { position: relative; max-width: 440px; margin: 0 auto; min-height: 100vh; min-height: 100dvh; padding: 20px 18px 28px; text-align: left; display: grid; grid-template-rows: auto 1fr auto; gap: 1rem; }
+.start.poster .start-top { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.poster-badge { background: #111; color: #ffd100; font-size: .75rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; padding: .35rem .6rem; transform: rotate(-3deg); }
+.start.poster .lang-toggle { background: #111; border-color: #111; }
+.start.poster .lang-toggle button { color: #fff; min-height: 40px; }
+.start.poster .lang-toggle button.on { background: #c8102e; color: #fff; }
+.poster-title { align-self: center; }
+.poster-title h1 { margin: 0; font-size: clamp(3.6rem, 19vw, 5.4rem); line-height: .84; font-weight: 900; text-transform: uppercase; letter-spacing: -.035em; color: #111; text-shadow: 4px 4px 0 #fff; overflow-wrap: anywhere; }
+.poster-sub { margin: .7rem 0 0; font-weight: 800; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; }
+.poster-bottom { display: grid; gap: .7rem; }
+.poster-ticker { overflow: hidden; white-space: nowrap; border-block: 2px solid #111; padding: .3rem 0; font-size: .75rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.poster-ticker span { display: inline-block; animation: ticker 40s linear infinite; }
+@keyframes ticker { to { transform: translateX(-50%); } }
+.poster-continue { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .7rem; padding: .7rem .8rem; border-radius: 12px; background: #111; color: #fff; border: 0; text-align: left; min-height: 64px; }
+.poster-continue:hover:not(:disabled) { border-color: transparent; background: #000; }
+.poster-continue .pc-text { display: grid; gap: .1rem; min-width: 0; }
+.poster-continue .pc-text .small { opacity: .75; }
+.poster-continue .pc-go { background: #ffd100; color: #111; border-radius: 8px; padding: .45rem .75rem; font-weight: 900; }
+.poster-new { background: #c8102e; color: #fff; border: 2px solid #111; border-radius: 12px; padding: .85rem; font-size: 1.05rem; font-weight: 900; box-shadow: 5px 5px 0 #111; min-height: 52px; }
+.poster-new:hover:not(:disabled) { border-color: #111; transform: translate(1px, 1px); box-shadow: 4px 4px 0 #111; }
+.poster-new:active { transform: translate(5px, 5px); box-shadow: 0 0 0 #111; }
+.start.poster .slots .slot { background: rgba(255,255,255,.55); border: 2px solid #111; color: #111; }
+.start.poster .file-btn { color: #111; justify-self: center; font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; }
+.start.poster button:focus-visible, .start.poster .file-btn:focus-within { outline: 3px solid #111; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .poster-ticker span { animation: none; } .poster-new:active { transform: none; } }
+@media (min-width: 900px) { .poster-stripes { clip-path: polygon(0 0, 100% 0, 100% 42%, 0 70%); } }
+.pt-run svg { vertical-align: -2px; }
+.poster-crests { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: 1.4rem; }
+.poster-crests > * { filter: drop-shadow(2px 2px 0 #111); }
+@media (min-width: 900px) {
+  .start.poster .start-card { max-width: 620px; }
+  .poster-title h1 { font-size: 7.5rem; }
+  .poster-sub { font-size: 1rem; }
+}

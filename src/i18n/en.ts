@@ -532,6 +532,8 @@ export const en = {
   'fans.reason.loyal': 'Manager stayed loyal',
   'fans.reason.derbyTalkWon': 'Backed up the derby talk',
   'fans.reason.derbyTalkLost': 'Derby talk backfired',
+  'start.badge': 'Liga Daerah Selangor',
+  'start.continue': 'Continue',
 } as const
 
 export type I18nKey = keyof typeof en

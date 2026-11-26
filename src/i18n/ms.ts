@@ -534,4 +534,6 @@ export const ms: Partial<Record<I18nKey, string>> = {
   'fans.reason.loyal': 'Pengurus kekal setia',
   'fans.reason.derbyTalkWon': 'Kata-kata derby dibuktikan',
   'fans.reason.derbyTalkLost': 'Kata-kata derby memakan diri',
+  'start.badge': 'Liga Daerah Selangor',
+  'start.continue': 'Sambung',
 }
