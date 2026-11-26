@@ -12,13 +12,27 @@ async function skipPressIfAny(user: ReturnType<typeof userEvent.setup>) {
   if (skip) await user.click(skip)
 }
 
+/** Answer whatever pops up on the home screen: the name prompt, a breaking story or headlines. */
+async function clearPopups(user: ReturnType<typeof userEvent.setup>) {
+  for (let i = 0; i < 4; i++) {
+    const name = screen.queryByLabelText('Your name')
+    if (name) { await user.type(name, 'Nazmi'); await user.click(screen.getByRole('button', { name: 'Save' })); continue }
+    const dialog = screen.queryByRole('dialog')
+    if (!dialog || !dialog.querySelector('.choice, .headlines')) return
+    await user.click(within(dialog).getAllByRole('button')[0])
+  }
+}
+
 async function playWeek(user: ReturnType<typeof userEvent.setup>) {
+  await clearPopups(user)
   await user.click(screen.getByRole('button', { name: 'Play match' }))
   await skipPressIfAny(user)
+  await user.click(await screen.findByRole('button', { name: 'Kick off' }))
   await user.click(await screen.findByRole('button', { name: 'Skip to end' }))
   await user.click(screen.getByRole('button', { name: 'Finish' }))
   await user.click(await screen.findByRole('button', { name: 'Continue' }))
   await skipPressIfAny(user)
+  await clearPopups(user)
 }
 
 async function startKapar() {
@@ -27,6 +41,7 @@ async function startKapar() {
   await user.click(await screen.findByRole('button', { name: 'New game' }))
   await user.click(screen.getByRole('button', { name: /Kapar/ }))
   await user.click(screen.getByRole('button', { name: 'Start career' }))
+  await clearPopups(user)
   return user
 }
 
@@ -142,6 +157,7 @@ describe('press and sacking flow', () => {
     await user.click(await screen.findByRole('button', { name: /Slot 3/ }))
     expect(await screen.findByRole('heading', { name: /Press conference/ })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /Confident/ }))
+    await user.click(await screen.findByRole('button', { name: 'Kick off' }))
     expect(await screen.findByRole('button', { name: 'Skip to end' })).toBeInTheDocument()
   })
 
@@ -196,8 +212,10 @@ test('after the final whistle the result screen shows the score, your players an
   await user.click(await screen.findByRole('button', { name: 'New game' }))
   await user.click(screen.getAllByRole('button', { name: /Klang/ })[0])
   await user.click(screen.getByRole('button', { name: 'Start career' }))
+  await clearPopups(user)
   await user.click(await screen.findByRole('button', { name: 'Play match' }))
   await skipPressIfAny(user)
+  await user.click(await screen.findByRole('button', { name: 'Kick off' }))
   await user.click(await screen.findByRole('button', { name: 'Skip to end' }))
   const live = screen.getByTestId('score').textContent!.match(/\d+/g)!.join('-')
   await user.click(screen.getByRole('button', { name: 'Finish' }))
@@ -212,4 +230,73 @@ test('after the final whistle the result screen shows the score, your players an
   expect(screen.queryByText('Press conference')).not.toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Continue' }))
   expect(screen.queryByRole('region', { name: 'Full-time' })).not.toBeInTheDocument()
+})
+
+describe('stories', () => {
+  test('a new manager is asked their name once, and it shows on the pre-match screen', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'New game' }))
+    await user.click(screen.getByRole('button', { name: /Kapar/ }))
+    await user.click(screen.getByRole('button', { name: 'Start career' }))
+    const name = await screen.findByLabelText('Your name')
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    await user.type(name, 'Nazmi')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(screen.queryByLabelText('Your name')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Play match' }))
+    await skipPressIfAny(user)
+    const mine = await screen.findByRole('region', { name: 'Kapar' })
+    expect(mine.textContent).toMatch(/Manager: Nazmi \(you\)/)
+    expect(mine.textContent).toMatch(/Key man/)
+    expect(mine.querySelectorAll('.pm-xi li')).toHaveLength(11)
+    const theirs = screen.getAllByRole('region').find((r) => r.classList.contains('pm-side') && r !== mine)!
+    expect(theirs.textContent).toMatch(/Manager: \S+ \S+/)
+  })
+
+  test('changing style on the pre-match screen carries into the match', async () => {
+    const user = await startKapar()
+    await user.click(screen.getByRole('button', { name: 'Play match' }))
+    await skipPressIfAny(user)
+    await user.click(await screen.findByRole('button', { name: 'Defensive' }))
+    await user.click(screen.getByRole('button', { name: 'Kick off' }))
+    await user.click(await screen.findByRole('button', { name: 'Pause' }))
+    const panel = screen.getByRole('region', { name: 'Team changes' })
+    expect(within(panel).getByRole('button', { name: 'Defensive' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  test('a waiting story must be answered, and the answer lands in the inbox', async () => {
+    const { saveGame } = await import('../save/storage')
+    const { newGame } = await import('../game/generate')
+    const { makeEvent } = await import('../game/story')
+    const { createRng } = await import('../game/rng')
+    const s = { ...newGame(23, 'klang'), managerName: 'Nazmi' }
+    const e = makeEvent(s, 'tvInterview', createRng(1))!
+    await saveGame(3, { ...s, story: { ...s.story, pending: e } })
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: /Slot 3/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'TV interview on Selangor Sukan' })
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('dialog', { name: 'TV interview on Selangor Sukan' })).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: /Combative/ }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await user.click(screen.getAllByRole('button', { name: /Inbox/ })[0])
+    expect(screen.getByText(/Ask me again in May/)).toBeInTheDocument()
+  })
+
+  test('breaking headlines pop up once, then stay in the inbox', async () => {
+    const { saveGame } = await import('../save/storage')
+    const { newGame } = await import('../game/generate')
+    const s = { ...newGame(24, 'klang'), managerName: 'Nazmi' }
+    const item = { id: 'b1', season: s.season, matchday: 1, kind: 'story' as const, key: 'news.story.viral', params: { clubId: 'klang', player: 'Ali Bakar' }, variant: 0, read: false, breaking: true }
+    await saveGame(3, { ...s, inbox: [item] })
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: /Slot 3/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Breaking' })
+    expect(dialog.textContent).toMatch(/Ali Bakar goes viral!/)
+    await user.click(within(dialog).getByRole('button', { name: 'OK' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
 })

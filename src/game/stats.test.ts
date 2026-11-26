@@ -92,7 +92,7 @@ test('history follows the manager to a new club', () => {
 
 test('older saves gain stats and an empty history', () => {
   const m = migrate(makeV3())
-  expect(m.version).toBe(5)
+  expect(m.version).toBe(6)
   expect(m.history).toEqual([])
   for (const p of Object.values(m.players) as Player[]) expect([p.goals, p.assists, p.ratingSum, p.rated]).toEqual([0, 0, 0, 0])
 })

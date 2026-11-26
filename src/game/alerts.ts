@@ -14,7 +14,7 @@ export function homeAlerts(s: GameState): HomeAlert[] {
   const me = s.userClubId
   const lineup = s.tactics[me].lineup
   const starters = lineup.map((id) => s.players[id]).filter(Boolean)
-  const out = starters.filter((p) => p.injuredWeeks > 0 || p.suspendedMatches > 0)
+  const out = starters.filter((p) => p.injuredWeeks > 0 || p.suspendedMatches > 0 || !!p.away)
   const all: HomeAlert[] = [
     { key: 'short', n: lineup.length < 11 ? lineup.length : 0, tab: 'tactics' },
     { key: 'out', n: out.length, tab: 'tactics' },

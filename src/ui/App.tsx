@@ -15,6 +15,9 @@ import { InboxScreen } from './screens/InboxScreen'
 import { ClubScreen } from './screens/ClubScreen'
 import { PressScreen } from './screens/PressScreen'
 import { ResultScreen } from './screens/ResultScreen'
+import { PreMatchScreen } from './screens/PreMatchScreen'
+import { BreakingNews } from './components/BreakingNews'
+import { NamePrompt } from './components/NamePrompt'
 import type { MatchState } from '../game/match/types'
 import type { GameState } from '../game/types'
 import { TransfersScreen } from './screens/TransfersScreen'
@@ -29,7 +32,8 @@ import { isSeasonOver, userFixture } from '../game/season'
 function GameShell({ game }: { game: GameApi }) {
   const { t } = useT()
   const [tab, setTab] = useState<Tab>('home')
-  const [inMatch, setInMatch] = useState(false)
+  // 'pre': line-ups before kick-off; 'live': the match itself
+  const [inMatch, setInMatch] = useState<false | 'pre' | 'live'>(false)
   // The full-time summary, shown after the match and before the post-match press conference.
   const [result, setResult] = useState<{ match: MatchState; before: GameState; cup: boolean } | null>(null)
   const s = game.state!
@@ -62,9 +66,13 @@ function GameShell({ game }: { game: GameApi }) {
             key={s.press.fixtureId + s.press.kind}
             press={s.press}
             state={s}
-            onSubmit={(a) => { const pre = s.press!.kind === 'pre'; game.answerPress(a); if (pre) setInMatch(true) }}
-            onSkip={() => { const pre = s.press!.kind === 'pre'; game.skipPress(); if (pre) setInMatch(true) }}
+            onSubmit={(a) => { const pre = s.press!.kind === 'pre'; game.answerPress(a); if (pre) setInMatch('pre') }}
+            onSkip={() => { const pre = s.press!.kind === 'pre'; game.skipPress(); if (pre) setInMatch('pre') }}
           />
+        </main>
+      ) : inMatch === 'pre' ? (
+        <main className="content full">
+          <PreMatchScreen state={s} onTactics={game.setTactics} onKickoff={() => setInMatch('live')} />
         </main>
       ) : inMatch ? (
         <main className="content full">
@@ -73,7 +81,7 @@ function GameShell({ game }: { game: GameApi }) {
       ) : (<>
       <Nav tab={tab} onTab={setTab} badges={{ transfers: s.transfers.offers.length, youth: s.youth.intake.length, inbox: unreadCount(s) }} />
       <main className="content">
-        {tab === 'home' && <Dashboard game={game} onGo={setTab} onPlayMatch={() => { const ns = game.beginMatch(); if (ns && !ns.press) setInMatch(true) }} />}
+        {tab === 'home' && <Dashboard game={game} onGo={setTab} onPlayMatch={() => { const ns = game.beginMatch(); if (ns && !ns.press) setInMatch('pre') }} />}
         {tab === 'inbox' && <InboxScreen state={s} onRead={game.markRead} onReadAll={game.markAllRead} />}
         {tab === 'club' && <ClubScreen state={s} />}
         {tab === 'squad' && <SquadScreen state={s} actions={game.transfers} />}
@@ -84,6 +92,7 @@ function GameShell({ game }: { game: GameApi }) {
         {tab === 'fixtures' && <FixturesScreen state={s} />}
         {tab === 'settings' && <SettingsScreen game={game} />}
       </main>
+      {!game.summary && (s.managerName ? <BreakingNews state={s} onDecide={game.decideStory} onSeen={game.seenBreaking} /> : <NamePrompt onSave={game.setManagerName} />)}
       </>)}
       {game.summary && <SeasonSummary state={s} summary={game.summary} onClose={game.clearSummary} />}
     </div>

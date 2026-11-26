@@ -7,7 +7,7 @@ import { SaveError } from '../save/storage'
 
 test('migrates a v1 save with defaults, and it plays', () => {
   const m = migrate(makeV1())
-  expect(m.version).toBe(5)
+  expect(m.version).toBe(6)
   expect(Object.values(m.players).every((p) => p.wage > 0)).toBe(true)
   expect(m.fans.mood).toBe(60)
   expect(m.career.kind).toBe('employed')
@@ -17,7 +17,7 @@ test('migrates a v1 save with defaults, and it plays', () => {
 
 test.each([['v1', makeV1], ['v2', makeV2]])('%s saves get contracts, free agents and transfer state', (_n, make) => {
   const m = migrate(make())
-  expect(m.version).toBe(5)
+  expect(m.version).toBe(6)
   const all = Object.values(m.players)
   expect(all.filter((p) => p.clubId === FREE_AGENT)).toHaveLength(24)
   for (const p of all) if (p.clubId !== FREE_AGENT) expect(p.contractEnd).toBeGreaterThan(m.season)

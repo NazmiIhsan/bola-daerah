@@ -8,6 +8,7 @@ import { bestPlayer } from '../../game/match/ratings'
 import { scorers } from '../../game/match/stats'
 import type { MatchEvent, MatchState, Shout, Side } from '../../game/match/types'
 import { matchOptions, matchTactics, userFixture } from '../../game/season'
+import { touchlineBan } from '../../game/story'
 import { FORMATIONS } from '../../game/tactics'
 import { createRng } from '../../game/rng'
 import { commentary } from '../../i18n'
@@ -161,6 +162,7 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
   const canSub = mine.subsUsed < 5 && !!offId && pitchIds.includes(offId) && benchIds.length > 0
   const chosenOn = benchIds.includes(onId) ? onId : benchIds[0] ?? ''
   const left = (id: string) => `${Math.round(energy(mine, state.players[id], match.minute))}%`
+  const banned = touchlineBan(state)
   const shout = (sh: Shout) => change({ kind: 'shout', shout: sh })
   const activeShout = match.shouts?.[mySide]
   const momentum = match.momentum ?? 0
@@ -251,11 +253,12 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
                   className={activeShout?.shout === sh ? 'on' : ''}
                   aria-pressed={activeShout?.shout === sh}
                   title={t(`match.shout.${sh}.desc`)}
-                  disabled={!canShout(match, mySide, sh) || !!prompt}
+                  disabled={banned || !canShout(match, mySide, sh) || !!prompt}
                   onClick={() => shout(sh)}
                 >{t(`match.shout.${sh}`)}</button>
               ))}
-              {!activeShout && !canShout(match, mySide, 'waste') && <span className="small muted shout-hint">{t('match.shout.wasteHint')}</span>}
+              {banned && <span className="small shout-hint" role="note">{t('match.banned')}</span>}
+              {!banned && !activeShout && !canShout(match, mySide, 'waste') && <span className="small muted shout-hint">{t('match.shout.wasteHint')}</span>}
               {activeShout && activeShout.until > match.minute && <span className="small" data-testid="shout-left">{t('match.shout.active', { shout: t(`match.shout.${activeShout.shout}`), n: activeShout.until - match.minute })}</span>}
             </div>
           )}

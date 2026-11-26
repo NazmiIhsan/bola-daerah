@@ -1,14 +1,27 @@
 // Test helpers (not used by production code).
 import { newGame } from './generate'
-import { FREE_AGENT } from './types'
+import { FREE_AGENT, type GameState } from './types'
 
 type Raw = Record<string, unknown>
 
+/** A version 5 save (before named managers and stories), from any state: mid-season works. */
+export function makeV5(from: GameState = newGame(5, 'kapar')): Raw {
+  const s = JSON.parse(JSON.stringify(from))
+  s.version = 5
+  delete s.managerName
+  delete s.managers
+  delete s.story
+  for (const p of Object.values(s.players) as Raw[]) delete p.away
+  for (const n of s.inbox as Raw[]) delete n.breaking
+  return s
+}
+
 /** A version 4 save: no goals, ratings or history. */
 export function makeV4(): Raw {
-  const s = JSON.parse(JSON.stringify(newGame(5, 'kapar')))
+  const s = makeV5()
   s.version = 4
-  for (const p of [...Object.values(s.players), ...s.youth.intake] as Raw[]) for (const k of ['goals', 'assists', 'ratingSum', 'rated']) delete p[k]
+  const v = s as { players: Record<string, Raw>; youth: { intake: Raw[] } }
+  for (const p of [...Object.values(v.players), ...v.youth.intake]) for (const k of ['goals', 'assists', 'ratingSum', 'rated']) delete p[k]
   delete s.history
   delete s.cup
   return s

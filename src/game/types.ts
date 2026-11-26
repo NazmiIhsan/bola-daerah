@@ -32,6 +32,8 @@ export interface Player {
   contractEnd: number
   /** on the transfer list */
   listed?: boolean
+  /** matches missed for personal reasons (call-up, wedding, family, dropped) */
+  away?: number
   /** matches played this season */
   apps: number
   /** this season */
@@ -97,8 +99,48 @@ export interface Division {
   clubIds: string[]
 }
 
+/** A club's manager: touchline leanings, favourite shapes and a name. */
+export interface ManagerProfile {
+  name: string
+  /** each 0..1 */
+  attack: number
+  bold: number
+  youth: number
+  formations: [FormationId, FormationId]
+  /** season they took over */
+  since: number
+}
+
+export type EventKind =
+  | 'bigBid' | 'payRise' | 'promiseDue' | 'benchUnhappy' | 'derbyTaunt' | 'ultimatum' | 'scandal' | 'sponsor'
+  | 'scoutTip' | 'callUp' | 'wedding' | 'bustUp' | 'family' | 'jobOffer' | 'tvInterview'
+
+/** A breaking story waiting for the user's decision. Params ending in "Id" are ids. */
+export interface StoryEvent { id: string; kind: EventKind; season: number; matchday: number; params: Record<string, string | number>; options: string[] }
+
+export interface StoryState {
+  pending: StoryEvent | null
+  /** week index (season * 100 + matchday) each kind last happened */
+  last: Partial<Record<EventKind, number>>
+  /** pay rises promised for later */
+  promises: Array<{ playerId: string; due: number; wage: number }>
+  /** the board's demand: `needed` league points from the matches in `from..until` */
+  ultimatum?: { from: number; until: number; needed: number }
+  /** how the user answered the rival manager before a derby */
+  derby?: { fixtureId: string; stance: 'fire' | 'calm' | 'quiet' }
+  /** matchday of the user's touchline ban */
+  ban?: number
+  /** this season's Ramadan weeks */
+  ramadan?: { season: number; from: number; to: number }
+}
+
 export interface GameState {
-  version: 5
+  version: 6
+  /** the user's name as a manager; '' until asked */
+  managerName: string
+  /** every club's manager, by clubId */
+  managers: Record<string, ManagerProfile>
+  story: StoryState
   seed: number
   rngState: number
   /** starts 2027 */
@@ -149,8 +191,8 @@ export interface BoardState { expectation: Expectation; targetPosition: number; 
 export interface WeekLedger { season: number; matchday: number; tickets: number; sponsor: number; prize: number; wages: number; attendance?: number; /** net transfer fees */ transfers?: number }
 /** history newest first, max 40; transferNet = net fees since the last ledger entry */
 export interface Finance { balance: number; history: WeekLedger[]; transferNet: number }
-export type NewsKind = 'match' | 'league' | 'fans' | 'board' | 'press' | 'finance' | 'career' | 'transfer' | 'youth'
-export interface NewsItem { id: string; season: number; matchday: number; kind: NewsKind; key: string; params: Record<string, string | number>; variant: number; read: boolean; important?: boolean }
+export type NewsKind = 'match' | 'league' | 'fans' | 'board' | 'press' | 'finance' | 'career' | 'transfer' | 'youth' | 'story'
+export interface NewsItem { id: string; season: number; matchday: number; kind: NewsKind; key: string; params: Record<string, string | number>; variant: number; read: boolean; important?: boolean; breaking?: boolean }
 export type Answer = 'confident' | 'humble' | 'combative'
 export interface PressQuestion { key: string; params: Record<string, string | number> }
 export interface PressConference { kind: 'pre' | 'post'; fixtureId: string; questions: PressQuestion[] }

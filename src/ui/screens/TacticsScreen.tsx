@@ -28,7 +28,7 @@ export function StrengthBars({ tactics, players }: { tactics: Tactics; players: 
 
 function PlayerRow({ p, selected, onClick }: { p: Player; selected: boolean; onClick(): void }) {
   const { t } = useT()
-  const status = p.injuredWeeks > 0 ? t('squad.injured', { n: p.injuredWeeks }) : p.suspendedMatches > 0 ? t('squad.suspended') : ''
+  const status = p.injuredWeeks > 0 ? t('squad.injured', { n: p.injuredWeeks }) : p.suspendedMatches > 0 ? t('squad.suspended') : p.away ? t('squad.away') : ''
   return (
     <button className={`prow ${selected ? 'sel' : ''} ${isAvailable(p) ? '' : 'out'}`} aria-label={`${p.firstName} ${p.lastName}${status ? ` – ${status}` : ''}`} onClick={onClick}>
       <span className={`pos ${p.position}`}>{t(`pos.${p.position}`)}</span>

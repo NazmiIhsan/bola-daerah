@@ -205,3 +205,11 @@ test('when time-wasting is not allowed, the reason is written out (phones have n
   renderMatch()
   expect(screen.getByText('Waste time works only when you are winning.')).toBeInTheDocument()
 })
+
+test('a touchline ban disables the shouts and says why', () => {
+  const s = newGame(8, 'kapar')
+  render(<LanguageProvider><MatchScreen state={{ ...s, story: { ...s.story, ban: s.matchday } }} onFinish={vi.fn()} /></LanguageProvider>)
+  const bar = within(screen.getByRole('group', { name: 'Touchline' }))
+  for (const b of bar.getAllByRole('button')) expect(b).toBeDisabled()
+  expect(screen.getByText('Touchline ban: no shouts this match.')).toBeInTheDocument()
+})

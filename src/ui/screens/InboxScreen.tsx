@@ -5,8 +5,8 @@ import { unreadCount } from '../../game/news'
 import { newsText } from '../../i18n'
 import type { GameState, NewsKind } from '../../game/types'
 
-const FILTERS: Array<NewsKind | 'all'> = ['all', 'match', 'fans', 'board', 'press', 'league', 'transfer', 'youth', 'finance']
-const ICON: Record<NewsKind, IconName> = { match: 'ball', league: 'trophy', fans: 'megaphone', board: 'board', press: 'mic', finance: 'money', career: 'briefcase', transfer: 'transfers', youth: 'youth' }
+const FILTERS: Array<NewsKind | 'all'> = ['all', 'story', 'match', 'fans', 'board', 'press', 'league', 'transfer', 'youth', 'finance']
+const ICON: Record<NewsKind, IconName> = { match: 'ball', league: 'trophy', fans: 'megaphone', board: 'board', press: 'mic', finance: 'money', career: 'briefcase', transfer: 'transfers', youth: 'youth', story: 'news' }
 
 export function InboxScreen({ state, onRead, onReadAll }: { state: GameState; onRead(id: string): void; onReadAll(): void }) {
   const { t, lang } = useT()

@@ -1,6 +1,7 @@
 import { CONTRACT_SEED, FORM_SEED, initialTransfers, overall, startingBalance, wageFor, withContractsAndFreeAgents } from './generate'
 import { expectationFor } from './reactions'
 import { rollForm } from './momentum'
+import { initialManagers } from './manager'
 import { createRng } from './rng'
 import type { GameState, Player } from './types'
 import { SaveError } from '../save/errors'
@@ -15,7 +16,8 @@ export function migrate(raw: Raw): GameState {
   if (s.version === 2) s = v2to3(s)
   if (s.version === 3) s = v3to4(s)
   if (s.version === 4) s = v4to5(s)
-  if (s.version !== 5) throw new SaveError('unsupported_version')
+  if (s.version === 5) s = v5to6(s)
+  if (s.version !== 6) throw new SaveError('unsupported_version')
   return s as unknown as GameState
 }
 
@@ -67,4 +69,10 @@ function v4to5(raw: Raw): Raw {
   const fresh = (p: Player): Player => ({ ...p, goals: 0, assists: 0, ratingSum: 0, rated: 0 })
   const players = Object.fromEntries(Object.entries(s.players).map(([id, p]) => [id, fresh(p)]))
   return { ...s, version: 5, players, youth: { intake: s.youth.intake.map(fresh) }, history: [], cup: null }
+}
+
+/** Named managers (same personalities as before), the user's name (asked in the game) and breaking stories. Works mid-season. */
+function v5to6(raw: Raw): Raw {
+  const s = raw as unknown as Old
+  return { ...s, version: 6, managerName: '', managers: initialManagers(s, Object.keys(s.clubs), s.season), story: { pending: null, last: {}, promises: [] } }
 }

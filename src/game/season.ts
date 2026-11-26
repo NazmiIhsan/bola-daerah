@@ -1,3 +1,4 @@
+import { derbyEdge, isRamadan, storyWeek } from './story'
 import { createRng, type Rng } from './rng'
 import { advanceCup, cupDue, cupFixture, cupPrize, cupTieOf, newCup } from './cup'
 import { cupNews } from './cupNews'
@@ -55,7 +56,7 @@ function refreshTactics(state: GameState, clubId: string): Tactics {
 }
 
 /** Mutates `players` (a copy owned by the caller) with cards, injuries and fatigue from one match. */
-function applyMatchEffects(players: Record<string, Player>, match: MatchState, rng: Rng) {
+function applyMatchEffects(players: Record<string, Player>, match: MatchState, rng: Rng, tiring = 1) {
   const touch = (id: string) => (players[id] = { ...players[id] })
   const ratings = matchRatings(match, players)
   for (const e of match.events) {
@@ -86,7 +87,7 @@ function applyMatchEffects(players: Record<string, Player>, match: MatchState, r
       p.rated += 1
     }
     // Added time is not counted: a full match costs the same however long the referee plays on.
-    p.fitness = Math.max(0, p.fitness - ((30 - p.attrs.stamina) * Math.min(90, minutes)) / 90)
+    p.fitness = Math.max(0, p.fitness - (tiring * (30 - p.attrs.stamina) * Math.min(90, minutes)) / 90)
   }
 }
 
@@ -123,6 +124,7 @@ function simulateRound(state: GameState, userMatch?: MatchState): GameState {
       ...p,
       injuredWeeks: Math.max(0, p.injuredWeeks - 1),
       suspendedMatches: playing.has(p.clubId) ? Math.max(0, p.suspendedMatches - 1) : p.suspendedMatches,
+      ...(p.away ? { away: playing.has(p.clubId) ? p.away - 1 : p.away } : {}),
     }
   }
 
@@ -132,7 +134,7 @@ function simulateRound(state: GameState, userMatch?: MatchState): GameState {
   for (const f of round) {
     const isUser = f.homeId === state.userClubId || f.awayId === state.userClubId
     const match = isUser && userMatch ? userMatch : simulateFull(f.homeId, f.awayId, tactics, state.players, rng.int(1, 2 ** 31), matchOptions(state, f))
-    applyMatchEffects(players, match, rng)
+    applyMatchEffects(players, match, rng, isRamadan(state) ? RAMADAN_TIRING : 1)
     results.set(f.id, { ...match.score })
   }
 
@@ -214,10 +216,16 @@ function clubSharpness(state: GameState, clubId: string): { attack: number; defe
 }
 
 /** Crowd and form effects for a fixture, and who is on each touchline. */
-export function matchOptions(state: GameState, f: Pick<Fixture, 'homeId' | 'awayId'>): MatchOptions {
+export function matchOptions(state: GameState, f: Pick<Fixture, 'homeId' | 'awayId'> & { id?: string }): MatchOptions {
+  // Fighting talk before a derby fires the user's players up a little.
+  const edge = f.id ? derbyEdge(state, f.id) : 1
+  const sharp = (clubId: string) => {
+    const base = clubSharpness(state, clubId)
+    return clubId === state.userClubId && edge !== 1 ? { attack: base.attack * edge, defence: base.defence * edge } : base
+  }
   return {
     homeBoost: f.homeId === state.userClubId ? userHomeBoost(state) : 1,
-    sharpness: { home: clubSharpness(state, f.homeId), away: clubSharpness(state, f.awayId) },
+    sharpness: { home: sharp(f.homeId), away: sharp(f.awayId) },
     managers: {
       ...(isAiRun(state, f.homeId) ? { home: managerOf(state, f.homeId) } : {}),
       ...(isAiRun(state, f.awayId) ? { away: managerOf(state, f.awayId) } : {}),
@@ -245,6 +253,8 @@ function adjustMorale(state: GameState, ids: string[], delta: number): GameState
 }
 
 const MIDWEEK_REST = 10
+/** Fasting weeks: matches take more out of the legs. */
+const RAMADAN_TIRING = 1.2
 
 /** Play the cup round that is due. The league matchday does not move. */
 function playCupRound(state: GameState, userMatch?: MatchState): GameState {
@@ -326,6 +336,7 @@ export function playMatchday(given: GameState, userMatch?: MatchState): GameStat
   s = youthWeek(before, s, rng)
   s = developWeek(before, s, rng)
   s = transferWeek(s, rng)
+  s = storyWeek(before, s, rng)
   // In-season rule only; the season-end verdict is endSeason's job.
   if (shouldSack({ ...s, matchday: Math.min(s.matchday, ROUNDS_PER_SEASON) })) s = sack(s, rng)
   return settleCup({ ...s, rngState: rng.state() })

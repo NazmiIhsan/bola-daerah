@@ -6,7 +6,8 @@ import type { MatchManager } from './match/types'
 import { createRng, type Rng } from './rng'
 import { computeTable } from './table'
 import { FORMATIONS, pickBestLineup, teamStrength } from './tactics'
-import type { FormationId, GameState, Player, Style, Tactics, TrainingFocus } from './types'
+import type { FormationId, GameState, ManagerProfile, Player, Style, Tactics, TrainingFocus } from './types'
+import { makeName } from './generate'
 
 export interface Manager extends MatchManager {
   /** favourite formations, best first */
@@ -21,8 +22,13 @@ export function isAiRun(state: Pick<GameState, 'userClubId' | 'career'>, clubId:
   return clubId !== state.userClubId || state.career.kind === 'sacked'
 }
 
-/** The club's AI manager. Worked out from the save's seed, so it never changes and needs no saving. */
-export function managerOf(state: Pick<GameState, 'seed'>, clubId: string): Manager {
+/** The club's manager: the one stored in the save, or (older saves, tests) the one its seed gives. */
+export function managerOf(state: Pick<GameState, 'seed'> & { managers?: GameState['managers'] }, clubId: string): Manager {
+  return state.managers?.[clubId] ?? seededManager(state, clubId)
+}
+
+/** The personality a club's first manager has, worked out from the save's seed. */
+function seededManager(state: Pick<GameState, 'seed'>, clubId: string): Manager {
   let h = state.seed | 0
   for (const ch of clubId) h = Math.imul(h ^ ch.charCodeAt(0), 2654435761) ^ (h >>> 13)
   const rng = createRng(h >>> 0)
@@ -33,6 +39,25 @@ export function managerOf(state: Pick<GameState, 'seed'>, clubId: string): Manag
     youth: rng.next(),
     formations: [first, rng.pick(formationIds().filter((f) => f !== first))],
   }
+}
+
+const MANAGER_NAMES = 0x3c6ef372
+
+/** A manager for every club: the seeded personality plus a name. Old saves get the same personalities they always had. */
+export function initialManagers(state: Pick<GameState, 'seed'>, clubIds: string[], season: number): Record<string, ManagerProfile> {
+  const rng = createRng((state.seed ^ MANAGER_NAMES) >>> 0)
+  return Object.fromEntries(clubIds.map((id) => {
+    const { firstName, lastName } = makeName(rng)
+    return [id, { ...seededManager(state, id), name: `${firstName} ${lastName}`, since: season }]
+  }))
+}
+
+/** A new manager for a club that has sacked its last one. */
+export function newManager(rng: Rng, season: number): ManagerProfile {
+  const { firstName, lastName } = makeName(rng)
+  const ids = formationIds()
+  const first = rng.pick(ids)
+  return { name: `${firstName} ${lastName}`, attack: rng.next(), bold: rng.next(), youth: rng.next(), formations: [first, rng.pick(ids.filter((f) => f !== first))], since: season }
 }
 
 const FAVOURITE = [0.12, 0.06]

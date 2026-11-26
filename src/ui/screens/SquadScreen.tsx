@@ -18,6 +18,7 @@ function Status({ p }: { p: Player }) {
   const { t } = useT()
   if (p.injuredWeeks > 0) return <span className="tag bad">{t('squad.injured', { n: p.injuredWeeks })}</span>
   if (p.suspendedMatches > 0) return <span className="tag bad">{t('squad.suspended')}</span>
+  if (p.away) return <span className="tag">{t('squad.away')}</span>
   return <span className="tag ok">{t('squad.available')}</span>
 }
 

@@ -3,6 +3,7 @@ import { newGame } from '../game/generate'
 import { acceptJob, endSeason, isSeasonOver, playMatchday, preMatch, seasonSummary, type SeasonSummary } from '../game/season'
 import { markAllRead as markAllNewsRead, markRead as markNewsRead } from '../game/news'
 import { answerPress as answerPressFn, skipPress as skipPressFn } from '../game/press'
+import { resolveStory } from '../game/story'
 import { createRng, type Rng } from '../game/rng'
 import { offerTerms, placeBid, renewContract, respondToOffer, toggleListed, type Act } from '../game/transfers'
 import { releaseYouth, setTraining, signYouth } from '../game/youth'
@@ -83,6 +84,14 @@ export function useGame() {
   const answerPress = useCallback((answers: Answer[]) => withRng((s, rng) => answerPressFn(s, answers, rng)), [withRng])
   const skipPress = useCallback(() => withRng((s, rng) => skipPressFn(s, rng)), [withRng])
   const takeJob = useCallback((clubId: string) => { if (state) setState(acceptJob(state, clubId)) }, [state, setState])
+  const decideStory = useCallback((option: string) => withRng((s, rng) => resolveStory(s, option, rng)), [withRng])
+  const setManagerName = useCallback((name: string) => { if (state && name.trim()) setState({ ...state, managerName: name.trim().slice(0, 40) }) }, [state, setState])
+  /** Mark breaking headlines as seen. */
+  const seenBreaking = useCallback((ids: string[]) => {
+    if (!state) return
+    const set = new Set(ids)
+    setState({ ...state, inbox: state.inbox.map((n) => (set.has(n.id) ? { ...n, read: true } : n)) })
+  }, [state, setState])
 
   const transfers = useMemo((): TransferActions => {
     /** Run a transfer action, keep its state if anything changed, and hand back the outcome. */
@@ -132,7 +141,7 @@ export function useGame() {
     await quit()
   }, [slot, storageOk, quit])
 
-  return { state, setState, slot, storageOk, saves, summary, clearSummary: () => setSummary(null), startNew, continueDay, setTactics, markRead, markAllRead, beginMatch, answerPress, skipPress, takeJob, transfers, youth, loadSlot, openImported, quit, removeSave }
+  return { state, setState, slot, storageOk, saves, summary, clearSummary: () => setSummary(null), startNew, continueDay, setTactics, markRead, markAllRead, beginMatch, answerPress, skipPress, takeJob, decideStory, setManagerName, seenBreaking, transfers, youth, loadSlot, openImported, quit, removeSave }
 }
 
 export type GameApi = ReturnType<typeof useGame>

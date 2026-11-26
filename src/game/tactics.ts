@@ -58,7 +58,7 @@ export interface Strength {
 }
 
 export function isAvailable(p: Player): boolean {
-  return p.injuredWeeks === 0 && p.suspendedMatches === 0
+  return p.injuredWeeks === 0 && p.suspendedMatches === 0 && !p.away
 }
 
 /** Role of each of the 11 slots for a formation: slot 0 GK, then DF, MF, FW. */

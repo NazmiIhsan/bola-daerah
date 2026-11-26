@@ -7,6 +7,7 @@ import { rollForm } from './momentum'
 import { newCup } from './cup'
 import { youthIntake } from './youth'
 import { expectationFor } from './reactions'
+import { initialManagers } from './manager'
 import { FREE_AGENT } from './types'
 import type { AttrKey, Attributes, Budget, Club, Division, GameState, Player, Position, Tactics, TransferState } from './types'
 
@@ -35,7 +36,7 @@ export function overall(p: Player): number {
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
-function makeName(rng: Rng): { firstName: string; lastName: string } {
+export function makeName(rng: Rng): { firstName: string; lastName: string } {
   const r = rng.next()
   if (r < 0.6) return { firstName: rng.pick(N.MALAY_FIRST), lastName: rng.pick(N.MALAY_LAST) }
   if (r < 0.8) return { firstName: rng.pick(N.CHINESE_FIRST), lastName: rng.pick(N.CHINESE_LAST) }
@@ -179,7 +180,10 @@ export function newGame(seed: number, userClubId: string): GameState {
   ]
   const season = 2027
   const state: GameState = {
-    version: 5,
+    version: 6,
+    managerName: '',
+    managers: initialManagers({ seed }, Object.keys(clubs), 2027),
+    story: { pending: null, last: {}, promises: [] },
     seed,
     rngState: rng.state(),
     season,

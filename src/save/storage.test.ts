@@ -75,9 +75,9 @@ test('importSave rejects saves that are broken inside (semantic checks)', () => 
 
 test('importSave upgrades older saves', async () => {
   const { makeV1, makeV2, makeV3 } = await import('../game/testUtils')
-  expect(importSave(JSON.stringify(makeV1())).version).toBe(5)
-  expect(importSave(JSON.stringify(makeV2())).version).toBe(5)
-  expect(importSave(JSON.stringify(makeV3())).version).toBe(5)
+  expect(importSave(JSON.stringify(makeV1())).version).toBe(6)
+  expect(importSave(JSON.stringify(makeV2())).version).toBe(6)
+  expect(importSave(JSON.stringify(makeV3())).version).toBe(6)
 })
 
 test('importSave rejects saves with broken transfer data', () => {

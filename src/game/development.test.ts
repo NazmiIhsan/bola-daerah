@@ -67,7 +67,7 @@ test('appearances count up and reset, and ovrStart follows each season', () => {
 
 test('v3 saves migrate with balanced training and an empty intake, and play', () => {
   const m = migrate(makeV3())
-  expect(m.version).toBe(5)
+  expect(m.version).toBe(6)
   expect(m.training).toBe('balanced')
   expect(m.youth.intake).toEqual([])
   for (const p of Object.values(m.players)) { expect(p.apps).toBe(0); expect(p.ovrStart).toBeCloseTo(overall(p), 5) }
