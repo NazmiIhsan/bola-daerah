@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../LanguageContext'
-import { applyChange, createMatch, stepMinute } from '../../game/match/sim'
+import { applyChange, canShout, createMatch, stepMinute } from '../../game/match/sim'
+import { assistantPrompt, type Prompt, type PromptOption } from '../../game/match/assistant'
 import { energy } from '../../game/match/minutes'
 import { penalties } from '../../game/match/penalties'
 import { bestPlayer } from '../../game/match/ratings'
 import { scorers } from '../../game/match/stats'
-import type { MatchEvent, MatchState, Side } from '../../game/match/types'
+import type { MatchEvent, MatchState, Shout, Side } from '../../game/match/types'
 import { matchOptions, matchTactics, userFixture } from '../../game/season'
 import { FORMATIONS } from '../../game/tactics'
 import { createRng } from '../../game/rng'
 import { commentary } from '../../i18n'
 import type { FormationId, GameState, Style } from '../../game/types'
 import { PitchCanvas, teamColors, type Highlight } from '../match/PitchCanvas'
-import { buildHighlight, type Frame } from '../match/highlights'
+import { ambientFrame, buildHighlight, type Frame } from '../match/highlights'
 import { slotPositions } from '../components/formationLayout'
 import { GoalBanner } from '../match/GoalBanner'
 import { MatchStats } from '../match/MatchStats'
@@ -20,6 +21,7 @@ import { Icon } from '../components/Icon'
 import { Kit } from '../components/bits'
 
 const STYLES: Style[] = ['attacking', 'balanced', 'defensive', 'counter']
+const SHOUTS: Shout[] = ['attack', 'calm', 'waste', 'encourage']
 const MS_PER_MINUTE = 400
 const GOAL_MS = 2400
 
@@ -27,6 +29,14 @@ function kickoffFrame(m: MatchState): Frame {
   const home = slotPositions(m.home.tactics.formation).map((s) => ({ x: (100 - s.y) * 0.5, y: s.x }))
   const away = slotPositions(m.away.tactics.formation).map((s) => ({ x: 50 + s.y * 0.5, y: 100 - s.x }))
   return { t: 0, ball: { x: 50, y: 50 }, home, away }
+}
+
+/** 90+3' in stoppage time. */
+export const clockText = (minute: number) => (minute > 90 ? `90+${minute - 90}'` : `${minute}'`)
+
+/** Big moments play in slow motion: penalties, late goals and gilt-edged misses. */
+function isBigMoment(e: MatchEvent) {
+  return e.kind === 'penalty' || (e.type === 'goal' && e.minute >= 85) || (e.type !== 'goal' && (e.xg ?? 0) >= 0.35)
 }
 
 export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m: MatchState): void }) {
@@ -41,13 +51,18 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
   const [goal, setGoal] = useState<MatchEvent | null>(null)
   const [offId, setOffId] = useState('')
   const [onId, setOnId] = useState('')
+  const [ambient, setAmbient] = useState<Frame | null>(null)
+  const [prompt, setPrompt] = useState<Prompt | null>(null)
+  const [seen, setSeen] = useState<string[]>([])
+  const [skipped, setSkipped] = useState(false)
 
   const mySide: Side = match.home.clubId === state.userClubId ? 'home' : 'away'
   const mine = match[mySide]
   const homeClub = state.clubs[match.home.clubId]
   const awayClub = state.clubs[match.away.clubId]
   const colors = useMemo(() => teamColors(homeClub.colors, awayClub.colors), [homeClub, awayClub])
-  const idle = useMemo(() => kickoffFrame(match), [match.home.tactics.formation, match.away.tactics.formation]) // eslint-disable-line react-hooks/exhaustive-deps
+  const kickoff = useMemo(() => kickoffFrame(match), [match.home.tactics.formation, match.away.tactics.formation]) // eslint-disable-line react-hooks/exhaustive-deps
+  const idle = ambient ?? kickoff
 
   // Clock
   const matchRef = useRef(match)
@@ -60,10 +75,21 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
       matchRef.current = next
       const fresh = next.events.slice(m.events.length)
       const hl = fresh.find((e) => e.highlight)
+      const half = next.minute <= 45 ? 1 : 2
       if (hl) {
-        const half = next.minute <= 45 ? 1 : 2
-        setHighlight({ key: next.events.indexOf(hl), frames: buildHighlight(hl, next.home.tactics.formation, next.away.tactics.formation, half, createRng(next.rngState)) })
+        const team = hl.side ? next[hl.side] : undefined
+        const slot = (id?: string) => {
+          const i = id && team ? team.onPitch.indexOf(id) : -1
+          return i > 0 ? i : undefined
+        }
+        setHighlight({
+          key: next.events.indexOf(hl),
+          frames: buildHighlight(hl, next.home.tactics.formation, next.away.tactics.formation, half, createRng(next.rngState), { shooter: slot(hl.playerId), assist: slot(hl.assistId), slow: isBigMoment(hl) }),
+        })
       }
+      // Ordinary play: the side that had the ball this minute pushes up.
+      const attacking: Side = next.possession.home > m.possession.home ? 'home' : 'away'
+      setAmbient(ambientFrame(next.home.tactics.formation, next.away.tactics.formation, attacking, next.momentum ?? 0, half, createRng(next.rngState ^ 0x9e3779b9)))
       if (fresh.some((e) => e.type === 'halftime')) setRunning(false)
       setMatch(next)
     }, MS_PER_MINUTE / speed)
@@ -71,7 +97,8 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
   }, [running, highlight, goal, match.finished, speed, state.players])
 
   // Nothing is given away before its highlight has played.
-  const events = highlight ? match.events.slice(0, highlight.key) : match.events
+  // Your own shouts show at once, even while a highlight plays.
+  const events = highlight ? match.events.filter((e, i) => i < highlight.key || e.type === 'shout') : match.events
   const score = { home: 0, away: 0 }
   for (const e of events) if (e.type === 'goal' && e.side) score[e.side]++
 
@@ -87,9 +114,29 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
     return () => clearTimeout(id)
   }, [goal, speed])
 
+  // The assistant speaks up at big moments, once the highlight and celebration are over.
+  useEffect(() => {
+    if (!running || highlight || goal || prompt || skipped || match.finished) return
+    const p = assistantPrompt(match, mySide, state.players, seen)
+    if (p) {
+      setPrompt(p)
+      setRunning(false)
+    }
+  }, [match, running, highlight, goal, prompt, skipped, seen, mySide, state.players])
+
+  const choose = (o: PromptOption) => {
+    if (!prompt) return
+    setMatch((m) => o.changes.reduce((acc, c) => applyChange(acc, mySide, c), m))
+    setSeen((x) => [...x, prompt.id])
+    setPrompt(null)
+    setRunning(true)
+  }
+
   const skip = () => {
     let m = match
     while (!m.finished) m = stepMinute(m, state.players)
+    setSkipped(true)
+    setPrompt(null)
     setHighlight(null)
     setGoal(null)
     setRunning(false)
@@ -114,6 +161,20 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
   const canSub = mine.subsUsed < 5 && !!offId && pitchIds.includes(offId) && benchIds.length > 0
   const chosenOn = benchIds.includes(onId) ? onId : benchIds[0] ?? ''
   const left = (id: string) => `${Math.round(energy(mine, state.players[id], match.minute))}%`
+  const shout = (sh: Shout) => change({ kind: 'shout', shout: sh })
+  const activeShout = match.shouts?.[mySide]
+  const momentum = match.momentum ?? 0
+  const promptText = (key: string, params: Record<string, string | number> = {}) =>
+    t(key, Object.fromEntries(Object.entries(params).map(([k, v]) => (k === 'playerId' ? ['player', name(String(v)) ?? ''] : [k, v]))))
+  const goalLabel = (() => {
+    if (!goal?.side) return undefined
+    const before = { home: 0, away: 0 }
+    for (const e of match.events) if (e.type === 'goal' && e.side && e !== goal && match.events.indexOf(e) < match.events.indexOf(goal)) before[e.side]++
+    const other: Side = goal.side === 'home' ? 'away' : 'home'
+    if (before[goal.side] === before[other] && goal.minute >= 80) return t('match.lateWinner')
+    if (before[goal.side] + 1 === before[other]) return t('match.equaliser')
+    return undefined
+  })()
   const pens = fixture.cup && match.finished && match.score.home === match.score.away ? penalties(match, state.players) : null
   const best = match.finished ? bestPlayer(match, state.players) : null
   const paused = !running && !match.finished
@@ -124,7 +185,13 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
         <span className="team"><Kit colors={homeClub.colors} /> {homeClub.name}</span>
         <span className="score-big" data-testid="score">{score.home} – {score.away}</span>
         <span className="team right">{awayClub.name} <Kit colors={awayClub.colors} /></span>
-        <span className="clock" data-testid="clock">{match.minute}'</span>
+        <span className="clock" data-testid="clock">{clockText(match.minute)}{match.added && match.minute >= 90 && !match.finished ? <small className="added"> {t('match.added', { n: match.added })}</small> : null}</span>
+        <div className="momentum" role="meter" aria-label={t('match.momentum')} aria-valuemin={-100} aria-valuemax={100} aria-valuenow={Math.round(momentum * 100)}>
+          <span className="small muted">{t('match.momentum')}</span>
+          <div className="momentum-track">
+            <span className="momentum-fill" style={{ background: colors[momentum >= 0 ? 'home' : 'away'][0], left: momentum >= 0 ? '50%' : `${50 + momentum * 50}%`, width: `${Math.abs(momentum) * 50}%` }} />
+          </div>
+        </div>
         {score.home + score.away > 0 && (['home', 'away'] as Side[]).map((side) => (
           <ul key={side} className={`scorers small ${side}`}>
             {scorers(events, side).map((g) => <li key={g.playerId}><Icon name="ball" size={13} /> {state.players[g.playerId]?.lastName} {g.minutes.map((m) => `${m}'`).join(', ')}</li>)}
@@ -135,8 +202,18 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
       <div className="match-grid">
         <div className="pitch-wrap card">
           <div className="pitch-stage">
-            <PitchCanvas idle={idle} highlight={highlight} speed={speed} colors={colors} names={names} onDone={endHighlight} />
-            {goal?.side && <GoalBanner player={name(goal.playerId) ?? ''} club={state.clubs[match[goal.side].clubId].name} colors={colors[goal.side]} />}
+            <PitchCanvas idle={idle} idleMs={MS_PER_MINUTE / speed} highlight={highlight} speed={speed} colors={colors} names={names} onDone={endHighlight} />
+            {goal?.side && <GoalBanner player={name(goal.playerId) ?? ''} club={state.clubs[match[goal.side].clubId].name} colors={colors[goal.side]} label={goalLabel} />}
+            {prompt && (
+              <section className="assistant card" role="dialog" aria-label={t('match.assistant')}>
+                <p><strong>{t('match.assistant')}:</strong> {promptText(prompt.key, prompt.params)}</p>
+                <div className="row">
+                  {prompt.options.map((o, i) => (
+                    <button key={o.key + i} className={i === 0 ? 'primary' : ''} onClick={() => choose(o)}>{promptText(o.key, o.params)}</button>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
           <div className="controls row">
             {match.finished ? (
@@ -148,7 +225,7 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
               </>
             ) : (
               <>
-                <button className="primary" onClick={() => setRunning((r) => !r)}>{running ? t('match.pause') : t('match.resume')}</button>
+                <button className="primary" onClick={() => { if (prompt) { setSeen((x) => [...x, prompt.id]); setPrompt(null) } setRunning((r) => !r) }}>{running ? t('match.pause') : t('match.resume')}</button>
                 <span className="row speed" role="group" aria-label={t('match.speed')}>
                   {[1, 2, 4].map((s) => (
                     <button key={s} className={speed === s ? 'on' : ''} aria-pressed={speed === s} onClick={() => setSpeed(s)}>{s}×</button>
@@ -159,6 +236,22 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
               </>
             )}
           </div>
+          {!match.finished && (
+            <div className="shouts" role="group" aria-label={t('match.shouts')}>
+              <span className="small muted">{t('match.shouts')}</span>
+              {SHOUTS.map((sh) => (
+                <button
+                  key={sh}
+                  className={activeShout?.shout === sh ? 'on' : ''}
+                  aria-pressed={activeShout?.shout === sh}
+                  title={t(`match.shout.${sh}.desc`)}
+                  disabled={!canShout(match, mySide, sh) || !!prompt}
+                  onClick={() => shout(sh)}
+                >{t(`match.shout.${sh}`)}</button>
+              ))}
+              {activeShout && activeShout.until > match.minute && <span className="small" data-testid="shout-left">{t('match.shout.active', { shout: t(`match.shout.${activeShout.shout}`), n: activeShout.until - match.minute })}</span>}
+            </div>
+          )}
         </div>
 
         <div className="side">
@@ -198,7 +291,7 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
             <ol className="feed" role="log" aria-live="polite">
               {feed.map(({ e, i }) => (
                 <li key={i} className={`ev ${e.type}`}>
-                  <span className="min">{e.minute}'</span>
+                  <span className="min">{clockText(e.minute)}</span>
                   <span>{line(e, i)}</span>
                 </li>
               ))}

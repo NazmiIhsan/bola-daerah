@@ -24,7 +24,7 @@ test('Skip to end finishes the match; Finish calls onFinish with finished=true',
   expect(onFinish).toHaveBeenCalledTimes(1)
   const m: MatchState = onFinish.mock.calls[0][0]
   expect(m.finished).toBe(true)
-  expect(m.minute).toBe(90)
+  expect(m.minute).toBe(90 + m.added!)
 })
 
 test('the clock advances while playing', () => {
@@ -91,7 +91,10 @@ describe('live match view', () => {
     act(() => { vi.advanceTimersByTime(400 * goal.minute + 50) })
     expect(screen.getByTestId('clock')).toHaveTextContent(`${goal.minute}'`)
     expect(screen.getByTestId('score')).toHaveTextContent('0 – 0')
-    act(() => { vi.advanceTimersByTime(4400) })
+    // Highlights last 3–6 s depending on how the chance came about.
+    let waited = 0
+    while (!screen.queryByTestId('goal') && waited < 7000) { act(() => { vi.advanceTimersByTime(100) }); waited += 100 }
+    expect(waited).toBeGreaterThanOrEqual(3000)
     expect(screen.getByTestId('score')).toHaveTextContent(goal.side === 'home' ? '1 – 0' : '0 – 1')
     expect(screen.getByTestId('goal')).toHaveTextContent(scorer.lastName)
     expect(screen.getByTestId('clock')).toHaveTextContent(`${goal.minute}'`)
@@ -123,4 +126,68 @@ test('the changes panel shows how much energy everyone has left', () => {
     expect(options.length).toBeGreaterThan(0)
     for (const o of options) expect(o.textContent).toMatch(/\d+%/)
   }
+})
+
+describe('touchline', () => {
+  test('a shout can be made while the match runs, shows how long it lasts and blocks the others', () => {
+    vi.useFakeTimers()
+    renderMatch()
+    act(() => { vi.advanceTimersByTime(400 * 3 + 50) })
+    const bar = within(screen.getByRole('group', { name: 'Touchline' }))
+    expect(bar.getByRole('button', { name: 'Waste time' })).toBeDisabled()
+    fireEvent.click(bar.getByRole('button', { name: 'Encourage' }))
+    expect(screen.getByTestId('shout-left')).toHaveTextContent('Encourage: 10 min left')
+    expect(bar.getByRole('button', { name: 'Attack!' })).toBeDisabled()
+    expect(screen.getByRole('log').textContent).toMatch(/rallies|encouragement/)
+  })
+
+  test('the momentum meter and the xG stat are shown', () => {
+    renderMatch()
+    expect(screen.getByRole('meter', { name: 'Momentum' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Skip to end' }))
+    expect(within(screen.getByRole('region', { name: 'Match stats' })).getByText('Expected goals (xG)')).toBeInTheDocument()
+    expect(screen.getByTestId('clock').textContent).toMatch(/^90\+\d'/)
+    expect(screen.getByRole('log').textContent).toMatch(/added|stoppage|minutes/i)
+  })
+
+  test('the assistant stops the clock at a big moment, and a choice restarts it', () => {
+    vi.useFakeTimers()
+    renderMatch()
+    let waited = 0
+    while (!screen.queryByRole('dialog', { name: 'Assistant' }) && waited < 400 * 200) {
+      const resume = screen.queryByRole('button', { name: 'Resume' })
+      if (resume) fireEvent.click(resume)
+      act(() => { vi.advanceTimersByTime(200) })
+      waited += 200
+    }
+    const dialog = screen.getByRole('dialog', { name: 'Assistant' })
+    const clock = screen.getByTestId('clock').textContent
+    act(() => { vi.advanceTimersByTime(2000) })
+    expect(screen.getByTestId('clock').textContent).toBe(clock)
+    fireEvent.click(within(dialog).getAllByRole('button')[0])
+    expect(screen.queryByRole('dialog', { name: 'Assistant' })).not.toBeInTheDocument()
+    act(() => { vi.advanceTimersByTime(8000) })
+    expect(screen.getByTestId('clock').textContent).not.toBe(clock)
+  })
+
+  test('resuming dismisses the assistant without a change', () => {
+    vi.useFakeTimers()
+    renderMatch()
+    let waited = 0
+    while (!screen.queryByRole('dialog', { name: 'Assistant' }) && waited < 400 * 200) {
+      const resume = screen.queryByRole('button', { name: 'Resume' })
+      if (resume) fireEvent.click(resume)
+      act(() => { vi.advanceTimersByTime(200) })
+      waited += 200
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Resume' }))
+    expect(screen.queryByRole('dialog', { name: 'Assistant' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument()
+  })
+
+  test('no assistant after skipping to the end', () => {
+    renderMatch()
+    fireEvent.click(screen.getByRole('button', { name: 'Skip to end' }))
+    expect(screen.queryByRole('dialog', { name: 'Assistant' })).not.toBeInTheDocument()
+  })
 })

@@ -85,7 +85,8 @@ function applyMatchEffects(players: Record<string, Player>, match: MatchState, r
       p.ratingSum += ratings[id]
       p.rated += 1
     }
-    p.fitness = Math.max(0, p.fitness - ((30 - p.attrs.stamina) * minutes) / 90)
+    // Added time is not counted: a full match costs the same however long the referee plays on.
+    p.fitness = Math.max(0, p.fitness - ((30 - p.attrs.stamina) * Math.min(90, minutes)) / 90)
   }
 }
 

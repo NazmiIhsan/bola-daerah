@@ -9,9 +9,11 @@ test('simulateFull is deterministic for a seed', () => {
   expect(simulateFull('h', 'a', tactics, players, 9)).toEqual(simulateFull('h', 'a', tactics, players, 9))
 })
 
-test('ends at minute 90 with halftime and fulltime events, finished=true', () => {
+test('ends after stoppage time with halftime, stoppage and fulltime events, finished=true', () => {
   const m = simulateFull('h', 'a', tactics, players, 3)
-  expect(m.minute).toBe(90)
+  expect(m.added).toBeGreaterThanOrEqual(1)
+  expect(m.minute).toBe(90 + m.added!)
+  expect(m.events.find((e) => e.type === 'stoppage')).toMatchObject({ minute: 90, added: m.added })
   expect(m.finished).toBe(true)
   expect(m.events.some((e) => e.type === 'halftime' && e.minute === 45)).toBe(true)
   expect(m.events.at(-1)!.type).toBe('fulltime')

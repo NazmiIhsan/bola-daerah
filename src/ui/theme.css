@@ -435,3 +435,20 @@ abbr[title] { text-decoration: none; }
 .scorers-list { max-width: 460px; margin-top: .9rem; }
 .scorers-list h3, .card h3 { margin-top: .9rem; }
 .card.next p.small { margin: 0; }
+
+/* Match day: momentum, shouts, assistant */
+.momentum { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .6rem; margin-top: .9rem; }
+.momentum-track { position: relative; height: 8px; border-radius: 4px; background: var(--line, rgba(127,127,127,.25)); overflow: hidden; }
+.momentum-track::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: currentColor; opacity: .5; }
+.momentum-fill { position: absolute; top: 0; bottom: 0; transition: left .4s, width .4s; }
+.clock .added { font-weight: 600; opacity: .85; }
+.shouts { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-top: .6rem; }
+.shouts button { padding: .4em .7em; min-height: 40px; }
+.shouts button.on { background: var(--accent-2); color: #000; border-color: var(--accent-2); }
+.assistant { position: absolute; left: .6rem; right: .6rem; bottom: .6rem; display: grid; gap: .5rem; background: rgba(15,15,12,.94); color: #fff; border: 2px solid var(--accent-2); animation: pop .3s cubic-bezier(.2, 1.4, .4, 1); }
+.assistant p { margin: 0; }
+.assistant .row { flex-wrap: wrap; gap: .4rem; }
+.goal-banner.big .goal-text strong { font-size: 2.2rem; color: var(--accent-2); }
+@media (prefers-reduced-motion: reduce) { .assistant { animation: none; } .momentum-fill { transition: none; } }
+.assistant button:not(.primary) { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.55); }
+.shouts button.on:disabled { opacity: 1; cursor: default; }

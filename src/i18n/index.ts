@@ -1,6 +1,6 @@
 import { en } from './en'
 import { ms } from './ms'
-import { COMMENTARY } from './commentary'
+import { COMMENTARY, KIND_COMMENTARY, SHOUT_COMMENTARY } from './commentary'
 import { NEWS } from './news'
 import { PRESS } from './press'
 import { PRESS_ANSWERS } from './pressAnswers'
@@ -40,8 +40,11 @@ export function commentary(
   names: { player?: string; assist?: string; club?: string; subOn?: string },
   rng: Rng,
 ): string {
-  const variants = COMMENTARY[lang][event.type]
-  const p: Params = { minute: event.minute }
+  const byKind = event.kind && (event.type === 'goal' || event.type === 'save' || event.type === 'miss') ? KIND_COMMENTARY[lang][`${event.type}.${event.kind}`] : undefined
+  // A line that names the assist only works when there is one.
+  const fitting = byKind?.filter((v) => names.assist || !v.includes('{assist}'))
+  const variants = (event.type === 'shout' && event.shout ? SHOUT_COMMENTARY[lang][event.shout] : undefined) ?? (fitting?.length ? fitting : undefined) ?? COMMENTARY[lang][event.type]
+  const p: Params = { minute: event.minute, ...(event.added ? { added: event.added } : {}) }
   for (const [k, v] of Object.entries(names)) if (v) p[k] = v
   const text = interpolate(rng.pick(variants), p)
   // Any placeholder we could not fill is replaced with a neutral word so no braces leak.

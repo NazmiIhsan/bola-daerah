@@ -11,6 +11,7 @@ export function MatchStats({ events, possession, colors }: { events: MatchEvent[
     ['possession', homePct, 100 - homePct, '%'],
     ['shots', st.home.shots, st.away.shots, ''],
     ['onTarget', st.home.onTarget, st.away.onTarget, ''],
+    ['xg', st.home.xg, st.away.xg, ''],
     ['yellow', st.home.yellow, st.away.yellow, ''],
     ['red', st.home.red, st.away.red, ''],
   ]
@@ -19,7 +20,7 @@ export function MatchStats({ events, possession, colors }: { events: MatchEvent[
       <h3>{t('match.stats')}</h3>
       {rows.map(([key, h, a, unit]) => (
         <div key={key} className="mstat">
-          <div className="mstat-top"><strong>{h}{unit}</strong><span className="small muted">{t(`match.stat.${key}`)}</span><strong>{a}{unit}</strong></div>
+          <div className="mstat-top"><strong>{key === 'xg' ? h.toFixed(1) : h}{unit}</strong><span className="small muted">{t(`match.stat.${key}`)}</span><strong>{key === 'xg' ? a.toFixed(1) : a}{unit}</strong></div>
           <div className="mstat-bar" aria-hidden>
             <span style={{ flexGrow: h, background: colors.home[0] }} />
             <span style={{ flexGrow: a, background: colors.away[0] }} />

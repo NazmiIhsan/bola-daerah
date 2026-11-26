@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { interpolate, type Frame } from './highlights'
+import { blend, interpolate, type Frame } from './highlights'
 
 export interface Highlight { frames: Frame[]; key: number }
 
@@ -75,12 +75,21 @@ function draw(ctx: CanvasRenderingContext2D, w: number, h: number, f: Frame, hom
   }
   team(f.home, names.home, home)
   team(f.away, names.away, away)
-  ctx.beginPath(); ctx.arc(X(f.ball.x), Y(f.ball.y), r * 0.55, 0, Math.PI * 2)
+  // A ball in the air leaves its shadow on the grass and looks bigger.
+  const z = f.ball.z ?? 0
+  if (z > 0.02) {
+    ctx.beginPath(); ctx.ellipse(X(f.ball.x), Y(f.ball.y), r * 0.55, r * 0.35, 0, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill()
+  }
+  const lift = z * h * 0.06
+  ctx.beginPath(); ctx.arc(X(f.ball.x), Y(f.ball.y) - lift, r * 0.55 * (1 + z * 0.7), 0, Math.PI * 2)
   ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = '#111'; ctx.stroke()
 }
 
-export function PitchCanvas({ idle, highlight, speed, colors, names, onDone }: {
+export function PitchCanvas({ idle, idleMs = 400, highlight, speed, colors, names, onDone }: {
   idle: Frame
+  /** how long ordinary play takes to move to a new `idle` frame */
+  idleMs?: number
   highlight: Highlight | null
   speed: number
   colors: { home: [string, string]; away: [string, string] }
@@ -92,6 +101,10 @@ export function PitchCanvas({ idle, highlight, speed, colors, names, onDone }: {
   doneRef.current = onDone
   const namesRef = useRef(names)
   namesRef.current = names
+  // Ordinary play glides from where it was to the latest frame.
+  const shown = useRef<Frame>(idle)
+  const glide = useRef({ from: idle, to: idle, start: 0 })
+  if (glide.current.to !== idle) glide.current = { from: shown.current, to: idle, start: performance.now() }
 
   useEffect(() => {
     const canvas = ref.current
@@ -112,10 +125,17 @@ export function PitchCanvas({ idle, highlight, speed, colors, names, onDone }: {
       if (!ctx) return
       if (highlight) {
         const t = (now - start) * speed
-        draw(ctx, canvas.width, canvas.height, interpolate(highlight.frames, t), colors.home, colors.away, namesRef.current)
+        const f = interpolate(highlight.frames, t)
+        shown.current = f
+        draw(ctx, canvas.width, canvas.height, f, colors.home, colors.away, namesRef.current)
         if (t > highlight.frames[highlight.frames.length - 1].t + 500) { doneRef.current(); return }
       } else {
-        draw(ctx, canvas.width, canvas.height, idle, colors.home, colors.away, namesRef.current)
+        const g = glide.current
+        const k = (now - g.start) / Math.max(1, idleMs)
+        const eased = k >= 1 ? 1 : 1 - (1 - k) * (1 - k)
+        const f = blend(g.from, g.to, eased)
+        shown.current = f
+        draw(ctx, canvas.width, canvas.height, f, colors.home, colors.away, namesRef.current)
       }
       raf = requestAnimationFrame(tick)
     }
@@ -126,7 +146,7 @@ export function PitchCanvas({ idle, highlight, speed, colors, names, onDone }: {
       return () => { clearTimeout(id); window.removeEventListener('resize', size) }
     }
     return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', size) }
-  }, [highlight, speed, idle, colors])
+  }, [highlight, speed, colors, idleMs])
 
   return <canvas ref={ref} className="pitch-canvas" style={{ width: '100%' }} aria-label="2D pitch" role="img" />
 }

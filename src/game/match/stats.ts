@@ -1,11 +1,12 @@
 import type { MatchEvent, Side } from './types'
 
-export interface SideStats { shots: number; onTarget: number; yellow: number; red: number }
+export interface SideStats { shots: number; onTarget: number; yellow: number; red: number; xg: number }
 
 export function matchStats(events: MatchEvent[]): Record<Side, SideStats> {
   const count = (side: Side): SideStats => {
     const n = (...types: MatchEvent['type'][]) => events.filter((e) => e.side === side && types.includes(e.type)).length
-    return { shots: n('goal', 'save', 'miss'), onTarget: n('goal', 'save'), yellow: n('yellow'), red: n('red') }
+    const xg = events.reduce((sum, e) => sum + (e.side === side && e.xg ? e.xg : 0), 0)
+    return { shots: n('goal', 'save', 'miss'), onTarget: n('goal', 'save'), yellow: n('yellow'), red: n('red'), xg: Math.round(xg * 10) / 10 }
   }
   return { home: count('home'), away: count('away') }
 }
