@@ -27,6 +27,7 @@ import { Nav, type Tab } from './components/Nav'
 import { SeasonSummary } from './components/SeasonSummary'
 import { YouthScreen } from './screens/YouthScreen'
 import { Crest } from './components/Crest'
+import { UpdatePrompt } from './components/UpdatePrompt'
 import { isSeasonOver, userFixture } from '../game/season'
 
 function GameShell({ game }: { game: GameApi }) {
@@ -114,6 +115,7 @@ export function App() {
   return (
     <LanguageProvider>
       <Root />
+      <UpdatePrompt />
     </LanguageProvider>
   )
 }
