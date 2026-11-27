@@ -3,6 +3,12 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { App } from './App'
 
+// Each test starts with empty save slots; otherwise saves from earlier tests decide which one the start screen shows as latest.
+beforeEach(async () => {
+  const { SLOTS, deleteSave } = await import('../save/storage')
+  for (const slot of SLOTS) await deleteSave(slot)
+})
+
 afterEach(() => {
   try { localStorage.clear() } catch { /* ignore */ }
 })
@@ -102,7 +108,9 @@ test('game autosaves and can be loaded again from the start screen', async () =>
   await screen.findByText(/Matchday 2/)
   await user.click(screen.getAllByRole('button', { name: 'Settings' })[0])
   await user.click(screen.getByRole('button', { name: 'Quit to main menu' }))
-  await waitFor(() => expect(screen.getByText(/Kapar · 2027 · matchday 2/)).toBeInTheDocument())
+  // The latest save is the Continue card on the start screen.
+  const card = await screen.findByRole('button', { name: /Kapar.*Continue/ })
+  expect(card).toHaveTextContent(/Season 2027 · Matchday 2 · Slot 1/)
 })
 
 test('importing when all 3 slots are full asks before overwriting, and cancelling keeps slot 1', async () => {
