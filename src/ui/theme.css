@@ -186,7 +186,8 @@ tr.me td { font-weight: 700; }
 .scorebar .team { display: inline-flex; align-items: center; gap: .4rem; font-weight: 700; min-width: 0; }
 .scorebar .team.right { justify-content: flex-end; }
 .score-big { font-size: 2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-.clock { position: absolute; left: 50%; bottom: -.7rem; transform: translateX(-50%); background: var(--accent); color: var(--accent-text); padding: 0 .6em; border-radius: 6px; font-weight: 700; font-size: .85rem; }
+.score-mid { display: grid; justify-items: center; gap: .2rem; }
+.clock { background: var(--accent); color: var(--accent-text); padding: 0 .6em; border-radius: 6px; font-weight: 700; font-size: .85rem; }
 .match-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
 .pitch-wrap { padding: .6rem; }
 .pitch-canvas { display: block; border-radius: 8px; }
@@ -437,7 +438,7 @@ abbr[title] { text-decoration: none; }
 .card.next p.small { margin: 0; }
 
 /* Match day: momentum, shouts, assistant */
-.momentum { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .6rem; margin-top: .9rem; }
+.momentum { grid-column: 1 / -1; display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: .5rem; margin-top: .5rem; }
 .momentum-track { position: relative; height: 8px; border-radius: 4px; background: var(--line, rgba(127,127,127,.25)); overflow: hidden; }
 .momentum-track::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: currentColor; opacity: .5; }
 .momentum-fill { position: absolute; top: 0; bottom: 0; transition: left .4s, width .4s; }
@@ -495,12 +496,14 @@ abbr[title] { text-decoration: none; }
   .ticker { display: grid; gap: .25rem; list-style: none; margin: .6rem 0 0; padding: .5rem .6rem; border-radius: 8px; background: var(--surface-2); min-height: 3.4em; }
   .ticker li { display: grid; grid-template-columns: 3.2em 1fr; gap: .3rem; font-size: .92rem; }
   .ticker li:first-child { font-weight: 600; }
-  .ticker li + li { opacity: .7; }
   .ticker .min { color: var(--muted); font-variant-numeric: tabular-nums; }
   .ticker .goal { color: var(--good-text); }
   .match .controls { gap: .4rem; }
+  .match .controls.playing { flex-wrap: nowrap; }
+  .match .controls .speed { gap: .3rem; flex-wrap: nowrap; }
+  .pitch-wrap { padding: .35rem; }
   .match .controls > button:not(.primary) { padding-inline: .7em; }
-  .match .side .feed-card { order: -1; max-height: 40vh; }
+  .match .side .feed-card { max-height: 40vh; }
   .match .side .changes { order: -2; }
   .scorebar .team { overflow-wrap: anywhere; }
   .scorebar .team.right { text-align: right; }
@@ -542,7 +545,7 @@ abbr[title] { text-decoration: none; }
 .pm-xi { list-style: none; margin: .6rem 0; padding: 0; display: grid; }
 .pm-xi li { display: grid; grid-template-columns: auto 1fr auto; gap: .5rem; align-items: center; padding: .3rem 0; border-bottom: 1px solid var(--border); }
 .pm-bench { margin: 0; }
-@media (max-width: 800px) { .pm-grid { grid-template-columns: 1fr; } .pm-controls .primary.big { width: 100%; } }
+@media (max-width: 800px) { .pm-grid { grid-template-columns: 1fr; } .pm-top > .pm-controls { justify-self: stretch; } .pm-controls .primary.big { width: 100%; } }
 
 /* Start screen: matchday poster in Selangor red and yellow */
 .start.poster { position: relative; overflow: hidden; background: #ffd100; color: #111; align-items: stretch; padding: 0; }
@@ -586,3 +589,17 @@ abbr[title] { text-decoration: none; }
 .update-prompt { position: fixed; z-index: 50; top: calc(.6rem + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 24px)); display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .6rem; padding: .7rem .9rem; border-radius: 10px; background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow); }
 .update-prompt span { flex: 1 1 14rem; }
 .update-actions { display: flex; gap: .5rem; margin-left: auto; }
+
+/* Pre-match head to head: the shape verdict and the three lines, above Kick off. */
+.pm-h2h { display: grid; gap: .45rem; width: min(100%, 460px); text-align: left; padding: .8rem; border-radius: 10px; background: var(--surface-2); }
+.pm-h2h h2 { margin: 0; font-weight: 600; text-transform: none; }
+.pm-shape { margin: 0; font-weight: 600; padding-left: .6rem; border-left: 4px solid var(--border); }
+.pm-shape.good { border-left-color: var(--good); }
+.pm-shape.bad { border-left-color: var(--bad); }
+.pm-cnames { display: flex; justify-content: space-between; gap: 1rem; }
+
+/* Live match: pause, speed and skip read as one group of playback controls; skip sits at the end. */
+.match .controls { align-items: center; }
+.match .controls .skip { margin-left: auto; }
+.match .controls .pause { min-width: 5.5em; }
+.ticker .lull span:last-child { font-style: italic; }

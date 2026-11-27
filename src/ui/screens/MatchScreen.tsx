@@ -25,6 +25,9 @@ const STYLES: Style[] = ['attacking', 'balanced', 'defensive', 'counter']
 const SHOUTS: Shout[] = ['attack', 'calm', 'waste', 'encourage']
 const MS_PER_MINUTE = 400
 const GOAL_MS = 2400
+/** Minutes without anything to report before the ticker describes the flow of play. */
+const LULL_MINUTES = 6
+const LULL_TILT = 0.2
 
 function kickoffFrame(m: MatchState): Frame {
   const home = slotPositions(m.home.tactics.formation).map((s) => ({ x: (100 - s.y) * 0.5, y: s.x }))
@@ -180,19 +183,27 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
   const pens = fixture.cup && match.finished && match.score.home === match.score.away ? penalties(match, state.players) : null
   const best = match.finished ? bestPlayer(match, state.players) : null
   const paused = !running && !match.finished
+  const leader: Side | null = momentum > LULL_TILT ? 'home' : momentum < -LULL_TILT ? 'away' : null
+  const momentumText = leader ? t('match.lull.on', { club: state.clubs[match[leader].clubId].name }) : t('match.lull.even')
+  // Long spells with nothing to report still say how the game is going, instead of an old line.
+  const lull = !match.finished && !highlight && !goal && match.minute - (feed[0]?.e.minute ?? 0) >= LULL_MINUTES ? momentumText : null
 
   return (
     <div className="match">
       <div className="scorebar card">
         <span className="team"><Kit colors={homeClub.colors} /> {homeClub.name}</span>
-        <span className="score-big" data-testid="score">{score.home} – {score.away}</span>
+        <span className="score-mid">
+          <span className="score-big" data-testid="score">{score.home} – {score.away}</span>
+          <span className="clock" data-testid="clock">{clockText(match.minute)}{match.added && match.minute >= 90 && !match.finished ? <small className="added"> {t('match.added', { n: match.added })}</small> : null}</span>
+        </span>
         <span className="team right">{awayClub.name} <Kit colors={awayClub.colors} /></span>
-        <span className="clock" data-testid="clock">{clockText(match.minute)}{match.added && match.minute >= 90 && !match.finished ? <small className="added"> {t('match.added', { n: match.added })}</small> : null}</span>
-        <div className="momentum" role="meter" aria-label={t('match.momentum')} aria-valuemin={-100} aria-valuemax={100} aria-valuenow={Math.round(momentum * 100)}>
+        <div className="momentum" role="meter" aria-label={t('match.momentum')} aria-valuetext={momentumText} aria-valuemin={-100} aria-valuemax={100} aria-valuenow={Math.round(momentum * 100)}>
           <span className="small muted">{t('match.momentum')}</span>
+          <Kit colors={homeClub.colors} size={18} />
           <div className="momentum-track">
             <span className="momentum-fill" style={{ background: colors[momentum >= 0 ? 'home' : 'away'][0], left: momentum >= 0 ? '50%' : `${50 + momentum * 50}%`, width: `${Math.abs(momentum) * 50}%` }} />
           </div>
+          <Kit colors={awayClub.colors} size={18} />
         </div>
         {score.home + score.away > 0 && (['home', 'away'] as Side[]).map((side) => (
           <ul key={side} className={`scorers small ${side}`}>
@@ -217,7 +228,7 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
               </section>
             )}
           </div>
-          <div className="controls row">
+          <div className={`controls row ${match.finished ? '' : 'playing'}`}>
             {match.finished ? (
               <>
                 <strong>{t('match.fulltime')}</strong>
@@ -227,20 +238,21 @@ export function MatchScreen({ state, onFinish }: { state: GameState; onFinish(m:
               </>
             ) : (
               <>
-                <button className="primary" onClick={() => { if (prompt) { setSeen((x) => [...x, prompt.id]); setPrompt(null) } setRunning((r) => !r) }}>{running ? t('match.pause') : t('match.resume')}</button>
+                <button className="pause" onClick={() => { if (prompt) { setSeen((x) => [...x, prompt.id]); setPrompt(null) } setRunning((r) => !r) }}>{running ? t('match.pause') : t('match.resume')}</button>
                 <span className="row speed" role="group" aria-label={t('match.speed')}>
                   {[1, 2, 4].map((s) => (
                     <button key={s} className={speed === s ? 'on' : ''} aria-pressed={speed === s} onClick={() => setSpeed(s)}>{s}×</button>
                   ))}
                 </span>
-                <button onClick={skip}>{t('match.skip')}</button>
+                <button className="skip" onClick={skip}>{t('match.skip')}</button>
                 {match.minute === 45 && !running && <strong>{t('match.halftime')}</strong>}
               </>
             )}
           </div>
           {/* On phones the commentary sits further down, so the latest moments show here. */}
           <ol className="ticker" aria-hidden>
-            {feed.slice(0, 2).map(({ e, i }) => (
+            {lull && <li className="ev lull"><span className="min">{clockText(match.minute)}</span> <span>{lull}</span></li>}
+            {feed.slice(0, lull ? 1 : 2).map(({ e, i }) => (
               <li key={i} className={`ev ${e.type}`}><span className="min">{clockText(e.minute)}</span> <span>{line(e, i)}</span></li>
             ))}
           </ol>

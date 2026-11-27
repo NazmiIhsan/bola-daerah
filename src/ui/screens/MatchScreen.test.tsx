@@ -213,3 +213,24 @@ test('a touchline ban disables the shouts and says why', () => {
   for (const b of bar.getAllByRole('button')) expect(b).toBeDisabled()
   expect(screen.getByText('Touchline ban: no shouts this match.')).toBeInTheDocument()
 })
+
+test('during a long spell with nothing to report, the ticker describes the flow of play instead of an old line', () => {
+  vi.useFakeTimers()
+  renderMatch()
+  let lull: Element | null = null
+  for (let i = 0; i < 400 && !lull; i++) {
+    act(() => { vi.advanceTimersByTime(400) })
+    if (screen.queryByRole('button', { name: 'Resume' })) fireEvent.click(screen.getByRole('button', { name: 'Resume' }))
+    lull = document.querySelector('.ticker .lull')
+  }
+  expect(lull).not.toBeNull()
+  expect(lull!.textContent).toMatch(/on top and pushing|An even spell/)
+  expect(document.querySelectorAll('.ticker li')).toHaveLength(2)
+})
+
+test('momentum names both teams with their kits and says who is on top', () => {
+  renderMatch()
+  const meter = screen.getByRole('meter', { name: 'Momentum' })
+  expect(meter.querySelectorAll('.kit, svg').length).toBeGreaterThanOrEqual(2)
+  expect(meter).toHaveAttribute('aria-valuetext', expect.stringMatching(/on top|even spell/))
+})
